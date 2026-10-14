@@ -261,6 +261,10 @@ button:active{transform:scale(.96)}.row:active,.shi:active,.erow:active{backgrou
   .detail .player.fs{width:100%;height:100%;flex:none}
 }
 @media (min-width:1500px){.grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+
+.volp{position:absolute;right:44px;bottom:54px;background:rgba(0,0,0,.72);padding:10px 14px;border-radius:99px;display:none;z-index:3}
+.ctl.volopen .volp{display:block}.volp input{width:130px;accent-color:var(--acc);display:block}
+video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 </style>
 </head>
 <body>
@@ -285,8 +289,17 @@ const plug=n=>{try{return window.Capacitor.registerPlugin(n)}catch(e){return nul
 const BAKED_API='';
 let API=String(BAKED_API||window.STREAMLY_API||store.get('strm.api','')).replace(/\/+$/,'');
 let TOKEN=store.get('strm.tok','');
+const CONFIG_URL='https://johnmarstonxz.github.io/Streamly-Web/config.js';
+function loadConfig(){
+  return new Promise(res=>{
+    if(API)return res();
+    const s=document.createElement('script');s.src=(NATIVE?CONFIG_URL:'config.js')+'?v='+Date.now();
+    s.onload=()=>{if(window.STREAMLY_API){API=String(window.STREAMLY_API).replace(/\/+$/,'');store.set('strm.api',API)}res()};
+    s.onerror=()=>res();document.head.appendChild(s);
+  });
+}
 /* icons */
-const P={home:'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',list:'M4 6h13M4 12h13M4 18h8M17 15v6M14 18h6',download:'M12 4v11m0 0l-4-4m4 4l4-4M5 20h14',chat:'M4 5h16v11H10l-5 4v-4H4z',me:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',upload:'M12 20V9m0 0l-4 4m4-4l4 4M5 4h14',search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',play:'M7 4.5v15l12-7.5z',pause:'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z',fs:'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',fsx:'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5',back:'M15 5l-7 7 7 7',plus:'M12 5v14M5 12h14',check:'M5 12.5l4.5 4.5L19 7',speed:'M12 14l4-5M4 17a9 9 0 1 1 16 0',globe:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',layers:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',x:'M6 6l12 12M18 6L6 18',chev:'M6 9l6 6 6-6',trash:'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13',star:'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',send:'M4 12l16-8-6 16-2-6z',pausei:'M8 5v14M16 5v14',ratio:'M3 7h18v10H3zM7 7v10M17 7v10'};
+const P={home:'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',list:'M4 6h13M4 12h13M4 18h8M17 15v6M14 18h6',download:'M12 4v11m0 0l-4-4m4 4l4-4M5 20h14',chat:'M4 5h16v11H10l-5 4v-4H4z',me:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',upload:'M12 20V9m0 0l-4 4m4-4l4 4M5 4h14',search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',play:'M7 4.5v15l12-7.5z',pause:'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z',fs:'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',fsx:'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5',back:'M15 5l-7 7 7 7',plus:'M12 5v14M5 12h14',check:'M5 12.5l4.5 4.5L19 7',speed:'M12 14l4-5M4 17a9 9 0 1 1 16 0',globe:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',layers:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',x:'M6 6l12 12M18 6L6 18',chev:'M6 9l6 6 6-6',trash:'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13',star:'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',send:'M4 12l16-8-6 16-2-6z',pausei:'M8 5v14M16 5v14',ratio:'M3 7h18v10H3zM7 7v10M17 7v10',vol:'M4 9v6h4l5 4V5L8 9H4zM16 8a5 5 0 0 1 0 8M18.5 5.5a9 9 0 0 1 0 13',mute:'M4 9v6h4l5 4V5L8 9H4zM17 9l5 6M22 9l-5 6',sub:'M3 6h18v12H3zM7 11h4M13 11h4M7 14h6'};
 const FILL=new Set(['play','pause','star']);
 const ic=(n,s=22,sw=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${FILL.has(n)?'currentColor':'none'}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[n]}"/></svg>`;
 const logo=(sz,cls='')=>`<svg class="logo ${cls}" width="${sz}" height="${sz}" viewBox="0 0 96 96"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b79cff"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect class="bx" x="4" y="4" width="88" height="88" rx="26" fill="url(#lg)"/><path class="s" d="M64 34c-4-8-30-9-30 3 0 13 30 8 30 22 0 12-27 12-34 3" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="M60 22l14 8-14 8z" fill="#fff" opacity=".92"/></svg>`;
@@ -311,7 +324,7 @@ const RATIOS=[['16:9','16:9','Default'],['4:3','4:3',''],['21:9','21:9','Cinema'
 const ratioLabel=r=>(RATIOS.find(x=>x[0]===r)||RATIOS[0])[1];
 const GENRES=['Adventure','Reincarnated','Action','Fantasy'];
 const LANGS=['Hindi','English','Urdu','Japanese','Tamil'];
-const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:2,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9'};
+const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:2,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9',volume:1,subLang:''};
 const S={kind:null,mode:'customer',tab:'home',feed:'foryou',q:'',set:Object.assign({},DEF,store.get('strm.set',{})),series:store.get('strm.cat5',[]),playlist:store.get('strm.pl',[]),downloads:store.get('strm.dl',[]),unread:0};
 const saveSet=()=>store.set('strm.set',S.set);
 const saveDl=()=>store.set('strm.dl',S.downloads.map(d=>({...d,run:undefined})));
@@ -602,7 +615,7 @@ function confirmDelete(title,sub,fn){
 async function deleteSeries(id){await api('/api/series/'+id,{method:'DELETE'});if(D&&D.id===id)closeDetail(true);await loadCatalog(true)}
 async function deleteEpisode(id,s,n){
   const sr=ser(id),data=clone(sr);['id','ts','views','cover'].forEach(k=>delete data[k]);
-  const se=data.seasons[s-1],ep=se.eps.find(e=>e.n===n);const names=[];collectNames(ep.files,names);
+  const se=data.seasons[s-1],ep=se.eps.find(e=>e.n===n);const names=[];collectNames(ep.files,names);collectNames(ep.subs,names);
   if(names.length)await api('/api/files/delete',{json:{names}});
   se.eps=se.eps.filter(e=>e.n!==n);if(!se.eps.length)data.seasons.splice(s-1,1);
   if(!data.seasons.length)await api('/api/series/'+id,{method:'DELETE'});else await api('/api/series',{json:{id,data}});
@@ -619,10 +632,11 @@ function manage(id){
   draw();
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u,sr=ser(id);
     if(u==='x')m.remove();
-    else if(u==='ep'){const si=+t.dataset.s,n=+t.dataset.n;sheet('S'+si+' · EP '+n,[{t:'Watch',v:'w'},{t:'Add language or quality',v:'f'},{t:'Make lower qualities (cloud)',v:'g'},{t:'Delete this episode',v:'d'}],it=>{
+    else if(u==='ep'){const si=+t.dataset.s,n=+t.dataset.n;sheet('S'+si+' · EP '+n,[{t:'Watch',v:'w'},{t:'Add language or quality',v:'f'},{t:'Add subtitles',v:'s'},{t:'Make lower qualities (cloud)',v:'g'},{t:'Delete this episode',v:'d'}],it=>{
       if(it.v==='w'){m.remove();openDetail(id,{s:si,n})}
       else if(it.v==='f'){m.remove();uploadForm('file',sr,{s:si,n})}
       else if(it.v==='g'){genQualities(id,si,n)}
+      else if(it.v==='s'){subForm(id,si,n)}
       else confirmDelete('Delete EP '+n+'?','Video files of this episode',async()=>{await deleteEpisode(id,si,n);draw()})})}
     else if(u==='addep'){m.remove();uploadForm('ep',sr)}
     else if(u==='addseason'){m.remove();uploadForm('season',sr)}
@@ -669,6 +683,28 @@ function editSeries(sr,onDone){
         await loadCatalog(true);m.remove();toast('Changes saved');onDone&&onDone();
       }catch(er){E.busy=false;draw();toast((er&&er.error)||'Could not save. Check your internet.')}
     }});
+}
+function subForm(id,s,n){
+  const m=modal('Subtitles · S'+s+' EP '+n),b=$('.mbody',m);let lang='English';
+  const ep=()=>{const sr=ser(id);return sr&&epObj(sr,s,n)};
+  const draw=()=>{const e=ep();if(!e){m.remove();return}const list=e.subs||[];
+    b.innerHTML=`<p class="sub" style="padding:0 0 10px">Add a .srt or .vtt file for this episode. Viewers pick it from Subtitles in fullscreen.</p><label class="fl">Language</label><div class="qrow">${['English','Hindi','Urdu','Arabic','Japanese','Spanish'].map(l=>`<button class="qc ${lang===l?'on':''}" data-u="sl" data-v="${l}">${l}</button>`).join('')}</div><button class="drop" data-u="pick" style="margin-top:14px">Choose subtitle file</button>${list.length?`<label class="fl">Added</label>`+list.map((x,i)=>`<div class="frow"><div><b>${esc(x.lang)}</b></div><button data-u="rm" data-i="${i}">Remove</button></div>`).join(''):''}`};
+  draw();
+  const inp=document.createElement('input');inp.type='file';inp.accept='.srt,.vtt,text/vtt,application/x-subrip';inp.hidden=true;m.appendChild(inp);
+  const save=async fn=>{const data=clone(ser(id));['id','ts','views','cover'].forEach(k=>delete data[k]);const e=data.seasons[s-1].eps.find(x=>x.n===n);fn(e);await api('/api/series',{json:{id,data}});await loadCatalog(true)};
+  inp.addEventListener('change',async()=>{
+    const f=inp.files[0];inp.value='';if(!f)return;
+    try{
+      let t=await f.text();if(!/^\uFEFF?WEBVTT/.test(t))t=srt2vtt(t);toast('Uploading subtitles…');
+      const r=await api('/api/upload/sub',{method:'PUT',headers:{'Content-Type':'text/plain'},body:t});
+      await save(e=>{e.subs=(e.subs||[]).filter(x=>x.lang!==lang);e.subs.push({lang,name:r.name})});toast('Subtitles added');draw();
+    }catch(er){toast((er&&er.error)||'Could not add subtitles')}
+  });
+  m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u;
+    if(u==='x')m.remove();
+    else if(u==='sl'){lang=t.dataset.v;draw()}
+    else if(u==='pick')inp.click();
+    else if(u==='rm'){const x=(ep().subs||[])[+t.dataset.i];if(!x)return;try{await api('/api/files/delete',{json:{names:[x.name]}});await save(en=>{en.subs=(en.subs||[]).filter(y=>y.name!==x.name)});draw()}catch(er){toast((er&&er.error)||'Failed')}}});
 }
 async function genQualities(id,s,n){
   const sr=ser(id),ep=epObj(sr,s,n),lang=Object.keys((ep&&ep.files)||{})[0];if(!lang)return;
@@ -755,7 +791,7 @@ function uploadForm(mode,sr,ctx){
   m.addEventListener('input',e=>{if(e.target.id==='uft'){U.title=e.target.value;const g=$('[data-u=go]',m);if(g)g.disabled=!(ok()&&!U.busy)}});
   $('#vf',m).addEventListener('change',async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
-    const d=await detectQ(f);U.file=f;U.fq=d.q;U.want=U.want.filter(q=>!d.q||q<d.q);draw();
+    const d=await detectQ(f);U.file=f;U.fq=d.q;U.want=[720,480,360].filter(q=>d.q&&q<d.q);draw();
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   async function run(){
@@ -813,8 +849,8 @@ const V=()=>$('#vid');
 function playerHTML(){const s=cur();return`<div class="stage" id="stage"><div class="art" style="background-image:url('${s.cover}')"></div><video id="vid" playsinline preload="auto"></video><div class="buf" id="buf"><div><div class="sp"></div><small id="bufm"></small></div></div><div class="fx l" id="fxl">« 10s</div><div class="fx r" id="fxr">10s »</div><div class="hold" id="hold">${ic('speed',16)}<span id="holdv">2×</span></div>
 <div class="ctl show" id="ctl"><div class="ctop"><button class="ib" data-act="p-back" aria-label="Back">${ic('back',22)}</button><span class="ctitle" id="ctitle"></span></div>
 <div class="cmid"><button class="ib sk" data-act="p-skip" data-v="-10">−10</button><button class="ib big" data-act="p-play" id="ppb" aria-label="Play or pause">${ic('play',26)}</button><button class="ib sk" data-act="p-skip" data-v="10">+10</button></div>
-<div class="cbot"><div class="seekrow"><span id="tcur">0:00</span><input type="range" class="seek" id="seek" min="0" max="1" value="0" step="1" aria-label="Seek"><span id="tdur">0:00</span><button class="ib" data-act="p-fs" id="fsb" aria-label="Fullscreen">${ic('fs',20)}</button></div>
-<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button><button data-act="p-dl">${ic('download',20)}<span>Download</span></button><button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-ratio">${ic('ratio',20)}<span id="rtl">${ratioLabel(PL.ratio)}</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
+<div class="cbot"><div class="volp"><input type="range" id="vol" min="0" max="1" step="0.05" value="${S.set.volume}" aria-label="Volume"></div><div class="seekrow"><span id="tcur">0:00</span><input type="range" class="seek" id="seek" min="0" max="1" value="0" step="1" aria-label="Seek"><span id="tdur">0:00</span><button class="ib" data-act="p-vol" id="volb" aria-label="Volume">${ic(S.set.volume===0?'mute':'vol',20)}</button><button class="ib" data-act="p-fs" id="fsb" aria-label="Fullscreen">${ic('fs',20)}</button></div>
+<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button><button data-act="p-dl">${ic('download',20)}<span>Download</span></button><button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-sub">${ic('sub',20)}<span>Subtitles</span></button><button data-act="p-ratio">${ic('ratio',20)}<span id="rtl">${ratioLabel(PL.ratio)}</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
 function pui(){
   const v=V();if(!v||!$('#seek'))return;const d=isFinite(v.duration)?v.duration:0,sk=$('#seek');
   sk.max=d||1;sk.value=v.currentTime||0;$('#tcur').textContent=fmt(v.currentTime);$('#tdur').textContent=fmt(d);
@@ -835,11 +871,28 @@ async function resolveSrc(){
 async function setSrc(resumeAt,play,msg){
   const v=V();if(!v)return;showBuf(msg||'Loading…');
   const url=await resolveSrc();if(!V()||!url){hideBuf();return}
-  v.src=url;v.defaultPlaybackRate=PL.base;v.playbackRate=PL.base;
+  v.src=url;v.volume=S.set.volume;v.muted=false;v.defaultPlaybackRate=PL.base;v.playbackRate=PL.base;
   v.addEventListener('loadedmetadata',()=>{if(resumeAt)try{v.currentTime=resumeAt}catch(e){}v.playbackRate=PL.base;if(play)v.play().catch(()=>{})},{once:true});
+}
+function srt2vtt(t){return 'WEBVTT\n\n'+t.replace(/\r+/g,'').replace(/(\d+:\d+:\d+),(\d+)/g,'$1.$2')}
+const SUBC={};
+async function subUrl(name){
+  if(SUBC[name])return SUBC[name];
+  const r=await fetch(API+'/api/video?f='+encodeURIComponent(name)+'&t='+encodeURIComponent(TOKEN));if(!r.ok)throw new Error('sub');
+  let t=await r.text();if(!/^\uFEFF?WEBVTT/.test(t))t=srt2vtt(t);
+  return SUBC[name]=URL.createObjectURL(new Blob([t],{type:'text/vtt'}));
+}
+async function setSub(lang){
+  const v=V();if(!v)return;PL.sub=lang;S.set.subLang=lang;saveSet();
+  $$('track',v).forEach(t=>t.remove());[...v.textTracks].forEach(t=>{t.mode='disabled'});if(!lang)return;
+  const ep=epObj(cur(),D.s,D.n),sub=ep&&(ep.subs||[]).find(x=>x.lang===lang);if(!sub)return;
+  try{const u=await subUrl(sub.name);const tr=document.createElement('track');tr.kind='subtitles';tr.label=lang;tr.srclang=lang.slice(0,2).toLowerCase();tr.src=u;tr.default=true;v.appendChild(tr);setTimeout(()=>{const t=v.textTracks[v.textTracks.length-1];if(t)t.mode='showing'},80)}
+  catch(e){toast('Could not load subtitles')}
 }
 function loadEp(auto){
   const ep=epObj(cur(),D.s,D.n);PL.q=D.offline?D.q:pickQ(epQs(ep,D.lang),S.set.defQ);PL.base=S.set.speed;ctitle();setSrc(0,auto!==false,'Loading…');
+  PL.sub='';const vv=V();if(vv)$$('track',vv).forEach(t=>t.remove());
+  const pref=S.set.subLang;if(pref&&!D.offline&&(ep.subs||[]).some(x=>x.lang===pref))setSub(pref);
 }
 async function switchQ(q){const v=V(),t=v.currentTime,was=!v.paused;PL.q=q;ctitle();toast('Quality: '+q+'p');await setSrc(t,was,'Switching to '+q+'p…')}
 async function switchLang(l){const v=V(),t=v.currentTime,was=!v.paused;D.lang=l;PL.q=pickQ(epQs(epObj(cur(),D.s,D.n),l),PL.q);ctitle();drawDetail();await setSrc(t,was,'Switching to '+l+'…')}
@@ -886,6 +939,7 @@ function bindPlayer(){
     if(now-last<300){clearTimeout(tt);last=0;if(x<.4)skip(-10);else if(x>.6)skip(10);else{const p=V();p.paused?p.play().catch(()=>{}):p.pause()}}
     else{last=now;tt=setTimeout(()=>{const c=$('#ctl'),p=V();if(c.classList.contains('show')&&p&&!p.paused)c.classList.remove('show');else showCtl()},300)}});
   $('#seek').addEventListener('input',e=>{V().currentTime=+e.target.value;showCtl()});
+  $('#vol').addEventListener('input',e=>{const x=+e.target.value;V().volume=x;V().muted=x===0;S.set.volume=x;saveSet();const b=$('#volb');if(b)b.innerHTML=ic(x===0?'mute':'vol',20);showCtl()});
 }
 function closeDetail(now){
   const d=$('#detail');if(!d)return;clearTimeout(PL.hideT);clearTimeout(PL.bufT);
@@ -925,7 +979,11 @@ function dlSheet(n){
   const s=cur(),ep=epObj(s,D.s,n),fs=(ep.files||{})[D.lang]||{};const qs=Object.keys(fs).map(Number).sort((a,b)=>b-a);
   if(!qs.length){toast('No file for this language');return}
   const pref=S.set.dlQ;if(pref!=='ask'){startDownload(D.id,D.s,n,D.lang,pickQ(qs,pref));return}
-  sheet(`Download S${D.s} · E${n}`,qs.map(q=>({t:q+'p',s:mb(fs[q].size)+' MB',v:q,on:S.downloads.some(d=>d.key===[D.id,D.s,n,D.lang,q].join('-'))})),it=>startDownload(D.id,D.s,n,D.lang,it.v),'The size shown is the real file size for each quality.');
+  const fsMode=!!$('#pl.fs');
+  const items=qs.map(q=>({t:q+'p',s:fsMode?'':mb(fs[q].size)+' MB',v:q,on:S.downloads.some(d=>d.key===[D.id,D.s,n,D.lang,q].join('-'))}));
+  const enc=ep.enc&&Date.now()-ep.enc.ts<3*3600e3?ep.enc.q:[];
+  enc.filter(q=>!qs.includes(q)).sort((a,b)=>b-a).forEach(q=>items.push({t:q+'p',s:'Processing…',v:0}));
+  sheet(`Download S${D.s} · E${n}`,items,it=>{if(it.v)startDownload(D.id,D.s,n,D.lang,it.v)},fsMode?'':'The size shown is the real file size for each quality.');
 }
 function pickEp(si,n){D.s=si;D.n=n;D.chip=n;const ls=epLangs(epObj(cur(),si,n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()}
 function epPopup(){
@@ -979,14 +1037,17 @@ const ACT={
   'p-skip':t=>PL.skip(+t.dataset.v),
   'p-back':()=>{if($('#pl').classList.contains('fs'))fsToggle(false);else closeDetail()},
   'p-fs':()=>fsToggle(),
+  'p-vol':()=>{const c=$('#ctl');c.classList.toggle('volopen');showCtl(4000)},
   'p-q':()=>{const ep=epObj(cur(),D.s,D.n),fs=(ep.files||{})[D.lang]||{},qs=D.offline?[D.q]:epQs(ep,D.lang);
-    const items=qs.map(q=>({t:q+'p',s:fs[q]?mb(fs[q].size)+' MB':'',v:q,on:q===PL.q}));
+    const items=qs.map(q=>({t:q+'p',v:q,on:q===PL.q}));
     const enc=!D.offline&&ep.enc&&Date.now()-ep.enc.ts<3*3600e3?ep.enc.q:[];
     enc.filter(q=>!qs.includes(q)).sort((a,b)=>b-a).forEach(q=>items.push({t:q+'p',s:'Processing…',v:0}));
     if(S.kind==='dev'&&!D.offline)(ep.want||[]).filter(q=>!qs.includes(q)&&!enc.includes(q)).sort((a,b)=>b-a).forEach(q=>items.push({t:q+'p',s:'Not generated yet (only you see this)',v:0}));
     sheet('Quality',items,it=>{if(it.v&&it.v!==PL.q)switchQ(it.v)})},
   'p-dl':()=>dlSheet(D.n),
   'p-lang':()=>ACT['d-lang'](),
+  'p-sub':()=>{const ep=epObj(cur(),D.s,D.n),subs=ep.subs||[];if(D.offline){toast('Subtitles need an internet connection');return}if(!subs.length){toast('No subtitles for this video');return}
+    sheet('Subtitles',[{t:'Off',v:'',on:!PL.sub},...subs.map(x=>({t:x.lang,v:x.lang,on:PL.sub===x.lang}))],it=>setSub(it.v))},
   'p-ratio':()=>sheet('Aspect ratio',RATIOS.map(([v,t,s])=>({t,s,v,on:PL.ratio===v})),it=>{PL.ratio=it.v;S.set.ratio=it.v;saveSet();const l=$('#rtl');if(l)l.textContent=ratioLabel(it.v);applyRatio();showCtl()}),
   'p-speed':()=>sheet('Playback speed',SPEEDS.map(x=>({t:x+'×',v:x,on:x===PL.base})),it=>{PL.base=it.v;V().playbackRate=it.v;pui()}),
   addpl:()=>{const i=S.playlist.indexOf(D.id);if(i<0){S.playlist.push(D.id);toast('Added to Playlist')}else{S.playlist.splice(i,1);toast('Removed from Playlist')}store.set('strm.pl',S.playlist);drawDetail()},
@@ -1029,10 +1090,11 @@ document.addEventListener('change',e=>{if(e.target.id!=='photoin')return;const f
 const offUI=()=>{const o=$('#offchip');if(o)o.style.display=navigator.onLine?'none':'block';toast(navigator.onLine?'Back online':'You are offline. Downloads still play.')};
 addEventListener('online',offUI);addEventListener('offline',offUI);
 /* ---------- boot ---------- */
-applySettings();splash();
-const un=store.get('strm.unlock',null);
-if(TOKEN&&un&&un.kind){S.kind=un.kind;S.tag=un.tag||'';S.mode=un.kind==='dev'?store.get('strm.mode','dev'):'customer';renderMain();startBg();pollMe()}else renderGate();
-wake();
+applySettings();splash();wake();
+loadConfig().then(()=>{
+  const un=store.get('strm.unlock',null);
+  if(TOKEN&&un&&un.kind){S.kind=un.kind;S.tag=un.tag||'';S.mode=un.kind==='dev'?store.get('strm.mode','dev'):'customer';renderMain();startBg();pollMe()}else renderGate();
+});
 if('serviceWorker' in navigator&&!window.Capacitor&&location.protocol.indexOf('http')===0&&window.__SW)navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 

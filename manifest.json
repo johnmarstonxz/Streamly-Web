@@ -20,5 +20,12 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "id": "./?app=streamly",
+  "description": "Streamly - your private cinema",
+  "categories": [
+    "entertainment",
+    "video"
+  ],
+  "lang": "en"
 }
