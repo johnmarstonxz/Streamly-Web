@@ -239,25 +239,28 @@ button:active{transform:scale(.96)}.row:active,.shi:active,.erow:active{backgrou
 .epb{height:46px;border-radius:10px;background:var(--sf2);font-weight:500}
 .epb.on{background:linear-gradient(135deg,rgba(var(--acc-rgb),.55),rgba(var(--acc-rgb),.25));color:#fff;box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.7)}
 
-.player .toast{bottom:64px}
-.player .shw{flex-direction:row;justify-content:flex-end;align-items:center}
-.player .shw .sh{width:100%;max-width:480px;margin:0 12px 0 0;border-radius:18px;max-height:90%;animation:slr .25s cubic-bezier(.2,.9,.3,1)}
-@keyframes slr{from{transform:translateX(40px);opacity:0}}
-.player .shw.out .sh{transform:translateX(40px);opacity:0}
 
-/* fullscreen side panel (slim, text only) */
-.player .shw{flex-direction:row;justify-content:flex-end;align-items:stretch}
-.player .shw .shb{background:transparent}
-.player .shw .sh{width:clamp(160px,26%,260px);max-width:none;max-height:none;height:calc(100% - 24px);margin:12px 0;padding:10px 4px;border-radius:18px 0 0 18px;background:rgba(10,10,12,.62);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;flex-direction:column;justify-content:center;overflow-y:auto;color:#fff;animation:slr .25s cubic-bezier(.2,.9,.3,1)}
-.player .sh h4,.player .sh .grab,.player .sh>.sub{display:none}
-.player .shi{border:0;padding:13px 18px;font-size:1.05rem;display:block;text-align:left;width:100%}
-.player .shi span{display:block}
-.player .shi em{display:block;font-size:.72rem;color:rgba(255,255,255,.6);margin-top:2px}
-.player .shi svg{display:none}
-.player .shi.on,.player .shi.on em{color:color-mix(in srgb,var(--acc) 45%,#fff);font-weight:600}
-.player .shw .sh.epsh{width:clamp(280px,46%,420px);justify-content:flex-start;min-height:0}
-.player .epsh .ephd{padding:6px 12px 10px}
-.player .epsh .epg{padding:12px}
+/* big screens: tablet / laptop / desktop use the full window */
+@media (min-width:760px){
+  #app{max-width:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px 14px;padding:14px 22px 28px}
+  .hdr{padding:0 22px}.search{padding:6px 22px;max-width:760px;margin:0 auto}.feeds{padding:8px 22px 0}
+  h2.pt,.sub{padding-left:22px;padding-right:22px}
+  .prof,.grp,.upb{max-width:780px;margin-left:auto;margin-right:auto}
+  .dlrow,.chatpage{max-width:900px;margin-left:auto;margin-right:auto;width:100%}
+  .shw .sh{width:560px;max-width:100%;margin:0 auto}
+  .modal .mbody,.modal .mh{max-width:720px;margin-left:auto;margin-right:auto;width:100%}
+  .epg{grid-template-columns:repeat(auto-fill,minmax(56px,1fr))}
+  .card:hover .cv{transform:translateY(-3px)}
+  .dscroll{padding-left:22px;padding-right:22px}
+}
+@media (min-width:980px){
+  .detail{flex-direction:row}
+  .detail .player{flex:0 0 64%;width:64%;align-self:flex-start}
+  .detail .dscroll{flex:1;height:100%;padding:18px 22px 40px}
+  .detail .player.fs{width:100%;height:100%;flex:none}
+}
+@media (min-width:1500px){.grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
 </style>
 </head>
 <body>
@@ -373,7 +376,7 @@ async function loadCatalog(force){
   }catch(e){}
 }
 function refreshView(){const t=S.tab;if(t==='home'&&$('#grid'))drawGrid();else if(t==='playlist')drawPlaylist();else if(t==='upload')drawUpload();else if(t==='downloads')drawDownloads()}
-async function pollMe(){if(!TOKEN||!navigator.onLine)return;try{await api('/api/me')}catch(e){}}
+async function pollMe(){if(!TOKEN||!navigator.onLine)return;try{const r=await api('/api/me');if((r.tag||'')!==(S.tag||'')){S.tag=r.tag||'';const u=store.get('strm.unlock',{});u.tag=S.tag;store.set('strm.unlock',u);if(S.tab==='me'&&$('.prof'))drawMe()}}catch(e){}}
 async function pollUnread(){
   if(!TOKEN||!navigator.onLine||S.tab==='chats')return;
   try{
@@ -424,7 +427,7 @@ function renderGate(msg){
     err.textContent='Checking…';
     try{
       const r=await api('/api/login',{json:{key:v},noauth:true});
-      TOKEN=r.token;store.set('strm.tok',TOKEN);store.set('strm.unlock',{kind:r.kind,mask:r.mask});S.kind=r.kind;S.mode=r.kind==='dev'?store.get('strm.mode','dev'):'customer';
+      TOKEN=r.token;store.set('strm.tok',TOKEN);store.set('strm.unlock',{kind:r.kind,mask:r.mask,tag:r.tag||''});S.kind=r.kind;S.tag=r.tag||'';S.mode=r.kind==='dev'?store.get('strm.mode','dev'):'customer';
       syncProfile();renderMain();startBg();askName();
     }catch(e){
       if(e.offline)err.textContent='Cannot reach the server. Check the address and your internet.';
@@ -583,10 +586,10 @@ function drawMe(){
     if(ty==='color')return`<div class="row"><span>${t}</span><div class="sws">${ACCS.map(c=>`<button data-act="acc" data-v="${c}" class="${st.accent===c?'on':''}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div></div>`;
     if(ty==='tg')return`<div class="row" data-act="tg" data-k="${k}"><span>${t}</span><i class="sw ${st[k]?'on':''}"></i></div>`;
     if(ty==='pick')return`<div class="row" data-act="pk" data-k="${k}"><span>${t}</span><em>${esc(setVal(k,o))} ›</em></div>`;
-    if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly 2.0':mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
+    if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly 2.1':mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
-  $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':'Customer mode'}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box"><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${grp}<div style="height:24px"></div>`;
+  $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
+  <div class="grp"><h4>Account</h4><div class="box"><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -612,17 +615,18 @@ function cardMenu(id){
 function manage(id){
   const s=ser(id);if(!s)return;const m=modal(s.title),b=$('.mbody',m);const last=s.seasons.length-1;
   const draw=()=>{const s=ser(id);if(!s){m.remove();return}
-    b.innerHTML=`<div class="cvrow"><div class="cvp" style="background-image:url('${s.cover}')"></div><div><b>${esc(s.title)}</b><div class="sub" style="padding:4px 0">${(s.langs||[]).join(', ')}</div><button class="btn2" data-u="cats">Edit categories</button></div></div>`+s.seasons.map((se,i)=>`<h3 style="margin:18px 0 0">Season ${pad(i+1)} <small style="color:var(--tx2);font-weight:400">${se.done?'complete':'in progress'}</small></h3><div class="mchips">${se.eps.map(e=>`<button data-u="ep" data-s="${i+1}" data-n="${e.n}">EP ${e.n}</button>`).join('')}${!se.done&&i===s.seasons.length-1?`<button style="background:var(--acc);color:#fff" data-u="addep">+ Add EP ${se.eps.reduce((a,e)=>Math.max(a,e.n),0)+1}</button>`:''}</div>`).join('')+(s.seasons[s.seasons.length-1].done?`<p class="sub" style="padding:14px 0 6px">Season ${s.seasons.length} is complete.</p><button class="cta" data-u="addseason">Add Season ${s.seasons.length+1}</button>`:'')+`<button class="btn2 pill-red" style="margin-top:22px" data-u="delser">Delete whole series</button>`};
+    b.innerHTML=`<div class="cvrow"><div class="cvp" style="background-image:url('${s.cover}')"></div><div><b>${esc(s.title)}</b><div class="sub" style="padding:4px 0">${(s.langs||[]).join(', ')}</div><button class="btn2" data-u="edit">Edit details</button></div></div>`+s.seasons.map((se,i)=>`<h3 style="margin:18px 0 0">Season ${pad(i+1)} <small style="color:var(--tx2);font-weight:400">${se.done?'complete':'in progress'}</small></h3><div class="mchips">${se.eps.map(e=>`<button data-u="ep" data-s="${i+1}" data-n="${e.n}">EP ${e.n}</button>`).join('')}${!se.done&&i===s.seasons.length-1?`<button style="background:var(--acc);color:#fff" data-u="addep">+ Add EP ${se.eps.reduce((a,e)=>Math.max(a,e.n),0)+1}</button>`:''}</div>`).join('')+(s.seasons[s.seasons.length-1].done?`<p class="sub" style="padding:14px 0 6px">Season ${s.seasons.length} is complete.</p><button class="cta" data-u="addseason">Add Season ${s.seasons.length+1}</button>`:'')+`<button class="btn2 pill-red" style="margin-top:22px" data-u="delser">Delete whole series</button>`};
   draw();
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u,sr=ser(id);
     if(u==='x')m.remove();
-    else if(u==='ep'){const si=+t.dataset.s,n=+t.dataset.n;sheet('S'+si+' · EP '+n,[{t:'Watch',v:'w'},{t:'Add language or quality',v:'f'},{t:'Delete this episode',v:'d'}],it=>{
+    else if(u==='ep'){const si=+t.dataset.s,n=+t.dataset.n;sheet('S'+si+' · EP '+n,[{t:'Watch',v:'w'},{t:'Add language or quality',v:'f'},{t:'Make lower qualities (cloud)',v:'g'},{t:'Delete this episode',v:'d'}],it=>{
       if(it.v==='w'){m.remove();openDetail(id,{s:si,n})}
       else if(it.v==='f'){m.remove();uploadForm('file',sr,{s:si,n})}
+      else if(it.v==='g'){genQualities(id,si,n)}
       else confirmDelete('Delete EP '+n+'?','Video files of this episode',async()=>{await deleteEpisode(id,si,n);draw()})})}
     else if(u==='addep'){m.remove();uploadForm('ep',sr)}
     else if(u==='addseason'){m.remove();uploadForm('season',sr)}
-    else if(u==='cats'){editCats(sr)}
+    else if(u==='edit'){editSeries(sr,draw)}
     else if(u==='delser')confirmDelete('Delete "'+sr.title+'"?','All seasons, episodes and video files',async()=>{await deleteSeries(id);m.remove()})});
 }
 function catChips(sel){return [...GENRES,'For you','Trending','Ongoing','Movie'].map(c=>`<button class="qc ${sel.includes(c)?'on':''}" data-u="cat" data-v="${c}">${c}</button>`).join('')}
@@ -633,6 +637,49 @@ function editCats(sr){
     if(t.dataset.u==='x')m.remove();
     else if(t.dataset.u==='cat'){const v=t.dataset.v;sel=sel.includes(v)?sel.filter(x=>x!==v):[...sel,v];draw()}
     else if(t.dataset.u==='save'){try{const data=clone(ser(sr.id));['id','ts','views','cover'].forEach(k=>delete data[k]);data.cats=sel;await api('/api/series',{json:{id:sr.id,data}});await loadCatalog(true);m.remove();toast('Categories saved')}catch(er){toast((er&&er.error)||'Failed')}}});
+}
+function editSeries(sr,onDone){
+  const m=modal('Edit details'),b=$('.mbody',m);
+  const E={title:sr.title,year:String(sr.year||new Date().getFullYear()),cover:sr.cover,coverNew:false,cats:[...(sr.cats||[])],done:sr.seasons.map(s=>!!s.done),busy:false};
+  const feedOk=()=>E.cats.some(c=>FEEDCATS.includes(c));
+  const can=()=>E.title.trim()&&feedOk()&&!E.busy;
+  const draw=()=>{
+    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="edt" value="${esc(E.title)}" maxlength="40">
+    <label class="fl">Year</label><input class="inp" id="edy" inputmode="numeric" value="${esc(E.year)}" maxlength="4">
+    <label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${E.cover}')"></div><div class="stack"><button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button></div></div>
+    <label class="fl">Categories</label><div class="qrow">${catChips(E.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
+    <label class="fl">Seasons</label><div class="box">${E.done.map((d,i)=>`<div class="row" data-u="sd" data-i="${i}"><span>Season ${i+1} complete</span><i class="sw ${d?'on':''}"></i></div>`).join('')}</div>
+    <button class="cta" style="width:100%;margin-top:22px" data-u="save" ${can()?'':'disabled'}>${E.busy?'Saving…':'Save changes'}</button>`;
+  };
+  draw();
+  m.addEventListener('input',e=>{if(e.target.id==='edt')E.title=e.target.value;else if(e.target.id==='edy')E.year=e.target.value;else return;const g=$('[data-u=save]',m);if(g)g.disabled=!can()});
+  $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);E.cover=c.toDataURL('image/jpeg',.82);E.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
+  m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t||E.busy)return;const u=t.dataset.u;
+    if(u==='x')m.remove();
+    else if(u==='pickcover')$('#cf',m).click();
+    else if(u==='autocover'){const tt=E.title.trim();if(!tt){toast('Type the title first');return}E.cover=cover(tt,(tt.length*47)%360,(tt.length*91+120)%360,tt.length*13+7);E.coverNew=true;draw()}
+    else if(u==='cat'){const v=t.dataset.v;E.cats=E.cats.includes(v)?E.cats.filter(x=>x!==v):[...E.cats,v];draw()}
+    else if(u==='sd'){const i=+t.dataset.i;E.done[i]=!E.done[i];draw()}
+    else if(u==='save'&&can()){
+      E.busy=true;draw();
+      try{
+        const data=clone(ser(sr.id));['id','ts','views','cover'].forEach(k=>delete data[k]);
+        data.title=E.title.trim();data.year=parseInt(E.year,10)||data.year;data.cats=E.cats;data.seasons.forEach((s,i)=>{s.done=E.done[i]});
+        await api('/api/series',{json:{id:sr.id,data,cover:E.coverNew?E.cover:null}});
+        await loadCatalog(true);m.remove();toast('Changes saved');onDone&&onDone();
+      }catch(er){E.busy=false;draw();toast((er&&er.error)||'Could not save. Check your internet.')}
+    }});
+}
+async function genQualities(id,s,n){
+  const sr=ser(id),ep=epObj(sr,s,n),lang=Object.keys((ep&&ep.files)||{})[0];if(!lang)return;
+  const qs=epQs(ep,lang),src=qs[0],targets=[720,480,360].filter(q=>q<src&&!qs.includes(q));
+  if(!targets.length){toast('This episode already has the lower qualities');return}
+  try{
+    const data=clone(sr);['id','ts','views','cover'].forEach(k=>delete data[k]);
+    const e=data.seasons[s-1].eps.find(x=>x.n===n);e.want=[...new Set([...(e.want||[]),src,...targets])].sort((a,b)=>b-a);
+    await api('/api/series',{json:{id,data}});const r=await api('/api/encode',{json:{sid:id,s,n,lang}});await loadCatalog(true);
+    toast(r.started?'Making '+targets.map(q=>q+'p').join(', ')+' in the cloud':'Nothing to make');
+  }catch(er){toast((er&&er.error)||'Could not start. Check your internet.')}
 }
 function nextSeason(){
   const m=modal('Next Season'),b=$('.mbody',m);
@@ -681,22 +728,22 @@ function detectQ(file){
 function uploadForm(mode,sr,ctx){
   const sNo=mode==='new'?1:mode==='season'?sr.seasons.length+1:mode==='ep'?sr.seasons.length:ctx.s;
   const nNo=mode==='new'||mode==='season'?1:mode==='ep'?sr.seasons[sr.seasons.length-1].eps.reduce((a,e)=>Math.max(a,e.n),0)+1:ctx.n;
-  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,fmap:{},qsel:[],pickQ:0,lang:(sr&&sr.langs&&sr.langs[0])||'Hindi',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
+  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,file:null,fq:0,want:[],lang:(sr&&sr.langs&&sr.langs[0])||'Hindi',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
   const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add file · S'+sNo+' EP '+nNo),b=$('.mbody',m);
   const feedOk=()=>mode==='file'||U.cats.some(c=>FEEDCATS.includes(c));
-  const ok=()=>U.title.trim()&&U.cover&&U.qsel.length&&U.qsel.every(q=>U.fmap[q])&&feedOk();
-  const total=()=>U.qsel.reduce((a,q)=>a+(U.fmap[q]?U.fmap[q].size:0),0);
+  const ok=()=>U.title.trim()&&U.cover&&U.file&&U.fq&&feedOk();
   const draw=()=>{
-    U.qsel.sort((a,c)=>c-a);
     b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
     <label class="fl">Language</label><div class="qrow">${LANGS.map(l=>`<button class="qc ${U.lang===l?'on':''}" data-u="lang" data-v="${l}">${l}</button>`).join('')}</div>
-    <label class="fl">Qualities to offer</label><div class="qrow">${[1080,720,480,360].map(q=>`<button class="qc ${U.qsel.includes(q)?'on':''}" data-u="qs" data-v="${q}">${q}p</button>`).join('')}</div>
-    <div class="orig">Viewers can switch between the qualities you pick. Each one needs its own real video file of that resolution, so 720p plays as real 720p.</div>
-    ${U.qsel.map(q=>{const f=U.fmap[q];return`<div class="frow"><div><b>${q}p</b><small>${f?mb(f.size)+' MB · '+esc(f.name):'No file chosen yet'}</small></div><button data-u="pq" data-q="${q}">${f?'Change':'Choose file'}</button></div>`}).join('')}
-    <button class="drop" data-u="auto">Choose files (quality is detected automatically)</button>
-    ${U.qsel.length?`<div class="orig">Total to upload: ${mb(total())} MB</div>`:''}
+    <label class="fl">Video file</label>
+    <button class="drop" data-u="pick">${U.file?esc(U.file.name):'Choose video file'}</button>
+    ${U.file?`<div class="orig">Original quality: <b>${U.fq?U.fq+'p':'could not be read, choose it below'}</b> · ${mb(U.file.size)} MB</div>`:'<div class="orig">The original quality is detected automatically.</div>'}
+    ${U.file&&!U.fq?`<div class="qrow" style="margin-top:8px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-v="${q}">${q}p</button>`).join('')}</div>`:''}
+    <label class="fl">Qualities for viewers</label>
+    <div class="qrow">${[1080,720,480,360].map(q=>{const locked=q===U.fq,big=U.fq&&q>U.fq,on=locked||U.want.includes(q);return`<button class="qc ${on?'on':''}" ${big?'disabled':''} data-u="${locked?'none':'qw'}" data-v="${q}">${q}p${locked?' · original':''}</button>`}).join('')}</div>
+    <div class="orig">Viewers get a quality menu with the ones you pick. Right now only your original quality plays. The lower ones show up once they are generated.</div>
     ${mode==='file'?'':`<label class="fl">Categories</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
     <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div></div>`}
     <div class="prog" style="display:${U.busy?'block':'none'}"><div class="bar"><i style="width:${U.pct}%"></i></div><small class="sub" id="upm" style="padding:0">${esc(U.msg)}</small></div>
@@ -707,52 +754,44 @@ function uploadForm(mode,sr,ctx){
   draw();
   m.addEventListener('input',e=>{if(e.target.id==='uft'){U.title=e.target.value;const g=$('[data-u=go]',m);if(g)g.disabled=!(ok()&&!U.busy)}});
   $('#vf',m).addEventListener('change',async e=>{
-    const files=[...e.target.files];e.target.value='';
-    for(const f of files){
-      const d=await detectQ(f);
-      if(U.pickQ){
-        if(d.q&&d.q!==U.pickQ){toast('That file is '+d.q+'p. Choose a '+U.pickQ+'p file for this slot.');continue}
-        U.fmap[U.pickQ]={file:f,name:f.name,size:f.size};
-      }else if(d.q){
-        U.fmap[d.q]={file:f,name:f.name,size:f.size};if(!U.qsel.includes(d.q))U.qsel.push(d.q);
-      }else toast('Could not read the quality of '+f.name+'. Use a quality slot instead.');
-    }
-    U.pickQ=0;draw();
+    const f=e.target.files[0];e.target.value='';if(!f)return;
+    const d=await detectQ(f);U.file=f;U.fq=d.q;U.want=U.want.filter(q=>!d.q||q<d.q);draw();
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   async function run(){
     U.busy=true;U.err='';draw();
     try{
-      const all=total();let done=0;const up={};const t0=Date.now();
-      for(const q of [...U.qsel].sort((a,c)=>c-a)){
-        const f=U.fmap[q];
-        const r=await uploadFile(f.file,loaded=>{const x=done+loaded,sp=x/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,x/all*100),`Uploading ${q}p · ${mb(x)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
-        up[q]={name:r.name,size:f.size};done+=f.size;
-      }
-      prog(99,'Saving…');await commit(up);
+      const t0=Date.now(),all=U.file.size;
+      const r=await uploadFile(U.file,loaded=>{const sp=loaded/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,loaded/all*100),`Uploading ${U.fq}p · ${mb(loaded)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
+      prog(99,'Saving…');await commit({[U.fq]:{name:r.name,size:U.file.size}});
     }catch(e){U.busy=false;U.err=(e&&e.error)||(e&&e.offline?'Connection lost. Tap Upload to continue where it stopped.':'Upload failed. Tap Upload to continue.');draw()}
   }
   async function commit(files){
+    const want=[...new Set([...U.want,U.fq])].sort((a,c)=>c-a);
     let data,id=sr&&sr.id,cv=null;
-    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[U.lang],cats:U.cats,seasons:[{eps:[{n:1,files:{[U.lang]:files}}],done:U.final}]};cv=U.cover}
+    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[U.lang],cats:U.cats,seasons:[{eps:[{n:1,files:{[U.lang]:files},want}],done:U.final}]};cv=U.cover}
     else{
       const fresh=(await api('/api/catalog')).find(x=>x.id===id)||sr;data=clone(fresh);['id','ts','views','cover'].forEach(k=>delete data[k]);
-      if(mode==='ep'){const se=data.seasons[sNo-1];se.eps.push({n:nNo,files:{[U.lang]:files}});if(U.final)se.done=true}
-      else if(mode==='season')data.seasons.push({eps:[{n:1,files:{[U.lang]:files}}],done:U.final});
-      else{const e=data.seasons[sNo-1].eps.find(x=>x.n===nNo);e.files=e.files||{};e.files[U.lang]=Object.assign(e.files[U.lang]||{},files)}
+      if(mode==='ep'){const se=data.seasons[sNo-1];se.eps.push({n:nNo,files:{[U.lang]:files},want});if(U.final)se.done=true}
+      else if(mode==='season')data.seasons.push({eps:[{n:1,files:{[U.lang]:files},want}],done:U.final});
+      else{const e=data.seasons[sNo-1].eps.find(x=>x.n===nNo);e.files=e.files||{};e.files[U.lang]=Object.assign(e.files[U.lang]||{},files);e.want=[...new Set([...(e.want||[]),...want])].sort((a,c)=>c-a)}
       data.langs=data.langs||[];if(!data.langs.includes(U.lang))data.langs.push(U.lang);
       if(mode!=='file')data.cats=U.cats;
     }
-    await api('/api/series',{json:{id,data,cover:cv}});
-    await loadCatalog(true);m.remove();toast('Uploaded. Everyone can watch it now.');
+    const rr=await api('/api/series',{json:{id,data,cover:cv}});const sid=id||rr.id;
+    await loadCatalog(true);m.remove();
+    const lower=want.filter(q=>q<U.fq);
+    if(lower.length){
+      try{const er=await api('/api/encode',{json:{sid,s:sNo,n:nNo,lang:U.lang}});toast(er.started?'Uploaded. Making '+lower.map(q=>q+'p').join(', ')+' in the cloud. This takes a while.':'Uploaded. Everyone can watch it now.');await loadCatalog(true)}
+      catch(e){toast('Uploaded. Auto quality is not set up yet.')}
+    }else toast('Uploaded. Everyone can watch it now.');
   }
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u;
     if(u==='x'){if(U.busy&&!confirm('Upload is running. Close anyway? You can resume later.'))return;m.remove();return}
-    if(U.busy)return;
-    const vf=$('#vf',m);
-    if(u==='auto'){U.pickQ=0;vf.multiple=true;vf.click()}
-    else if(u==='pq'){U.pickQ=+t.dataset.q;vf.multiple=false;vf.click()}
-    else if(u==='qs'){const q=+t.dataset.v;U.qsel=U.qsel.includes(q)?U.qsel.filter(x=>x!==q):[...U.qsel,q];if(!U.qsel.includes(q))delete U.fmap[q];draw()}
+    if(U.busy||u==='none')return;
+    if(u==='pick'){$('#vf',m).multiple=false;$('#vf',m).click()}
+    else if(u==='fq'){U.fq=+t.dataset.v;draw()}
+    else if(u==='qw'){const q=+t.dataset.v;U.want=U.want.includes(q)?U.want.filter(x=>x!==q):[...U.want,q];draw()}
     else if(u==='pickcover')$('#cf',m).click();
     else if(u==='autocover'){const tt=U.title.trim();if(!tt){toast('Type the title first');return}U.cover=cover(tt,(tt.length*47)%360,(tt.length*91+120)%360,tt.length*13+7);U.coverNew=true;draw()}
     else if(u==='lang'){U.lang=t.dataset.v;draw()}
@@ -762,7 +801,7 @@ function uploadForm(mode,sr,ctx){
 }
 function keysModal(){
   const m=modal('Control keys'),b=$('.mbody',m);
-  const draw=async()=>{try{const ks=await api('/api/keys');let c=0;b.innerHTML=`<p class="sub" style="padding:0 0 12px">Deactivate a key and that person is signed out on every phone within seconds, even while watching.</p><div class="box">`+ks.map(k=>{const dev=k.kind==='dev';if(!dev)c++;return`<div class="row" ${dev?'style="cursor:default"':`data-u="k" data-h="${k.h}" data-a="${k.active}"`}><span>${dev?'Developer key':'Customer key '+c}<small style="display:block;color:var(--tx2)">${esc(k.mask)}</small></span>${dev?'<em>Always active</em>':`<span class="tag ${k.active?'':'warn'}">${k.active?'Active':'Deactivated'}</span><i class="sw ${k.active?'on':''}"></i>`}</div>`}).join('')+`</div>`}catch(e){b.innerHTML='<p class="sub">Could not load keys. Check your internet.</p>'}};
+  const draw=async()=>{try{const ks=await api('/api/keys');let c=0;b.innerHTML=`<p class="sub" style="padding:0 0 12px">Deactivate a key and that person is signed out on every phone within seconds, even while watching.</p><div class="box">`+ks.map(k=>{const dev=k.kind==='dev';if(!dev)c++;return`<div class="row" ${dev?'style="cursor:default"':`data-u="k" data-h="${k.h}" data-a="${k.active}"`}><span>${dev?'Developer key':(k.tag==='friend'?'Friend key ':'Customer key ')+c}<small style="display:block;color:var(--tx2)">${esc(k.mask)}</small></span>${dev?'<em>Always active</em>':`<span class="tag ${k.active?'':'warn'}">${k.active?'Active':'Deactivated'}</span><i class="sw ${k.active?'on':''}"></i>`}</div>`}).join('')+`</div>`}catch(e){b.innerHTML='<p class="sub">Could not load keys. Check your internet.</p>'}};
   draw();
   m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t)return;if(t.dataset.u==='x'){m.remove();return}
     const on=t.dataset.a==='1';try{await api('/api/keys/'+t.dataset.h,{json:{active:on?0:1}});toast(on?'Key deactivated. That user is signed out.':'Key activated');draw()}catch(er){toast((er&&er.error)||'Failed')}});
@@ -862,7 +901,7 @@ function openDetail(id,o={}){
   if(!ep||!epLangs(ep).length){toast('This episode has no video yet');return}
   const ls=epLangs(ep);
   D={id,s,n,lang:o.lang&&ls.includes(o.lang)?o.lang:ls[0],tab:'for',chip:n,offline:!!o.localUrl,q:o.q||null,localUrl:o.localUrl||''};
-  const d=el(`<div class="detail ${D.offline?'off':''}" id="detail"><div class="player" id="pl"></div><div class="dscroll" id="dsc"></div><button class="fab" data-act="d-dl">${ic('download',20)} Download</button></div>`);
+  const d=el(`<div class="detail ${D.offline?'off':''}" id="detail"><div class="player" id="pl"></div><div class="dscroll" id="dsc"></div></div>`);
   if(o.from){try{const r=o.from.getBoundingClientRect(),a=app.getBoundingClientRect();d.style.setProperty('--ox',(r.left-a.left+r.width/2)+'px');d.style.setProperty('--oy',(r.top-a.top+r.height/2)+'px')}catch(e){}}
   app.appendChild(d);$('#pl').innerHTML=playerHTML();bindPlayer();drawDetail();loadEp();
   if(!D.offline&&navigator.onLine)api('/api/series/'+id+'/view',{method:'POST'}).catch(()=>{});
@@ -940,7 +979,12 @@ const ACT={
   'p-skip':t=>PL.skip(+t.dataset.v),
   'p-back':()=>{if($('#pl').classList.contains('fs'))fsToggle(false);else closeDetail()},
   'p-fs':()=>fsToggle(),
-  'p-q':()=>{const ep=epObj(cur(),D.s,D.n),fs=(ep.files||{})[D.lang]||{},qs=D.offline?[D.q]:epQs(ep,D.lang);sheet('Quality',qs.map(q=>({t:q+'p',s:fs[q]?mb(fs[q].size)+' MB':'',v:q,on:q===PL.q})),it=>{if(it.v!==PL.q)switchQ(it.v)})},
+  'p-q':()=>{const ep=epObj(cur(),D.s,D.n),fs=(ep.files||{})[D.lang]||{},qs=D.offline?[D.q]:epQs(ep,D.lang);
+    const items=qs.map(q=>({t:q+'p',s:fs[q]?mb(fs[q].size)+' MB':'',v:q,on:q===PL.q}));
+    const enc=!D.offline&&ep.enc&&Date.now()-ep.enc.ts<3*3600e3?ep.enc.q:[];
+    enc.filter(q=>!qs.includes(q)).sort((a,b)=>b-a).forEach(q=>items.push({t:q+'p',s:'Processing…',v:0}));
+    if(S.kind==='dev'&&!D.offline)(ep.want||[]).filter(q=>!qs.includes(q)&&!enc.includes(q)).sort((a,b)=>b-a).forEach(q=>items.push({t:q+'p',s:'Not generated yet (only you see this)',v:0}));
+    sheet('Quality',items,it=>{if(it.v&&it.v!==PL.q)switchQ(it.v)})},
   'p-dl':()=>dlSheet(D.n),
   'p-lang':()=>ACT['d-lang'](),
   'p-ratio':()=>sheet('Aspect ratio',RATIOS.map(([v,t,s])=>({t,s,v,on:PL.ratio===v})),it=>{PL.ratio=it.v;S.set.ratio=it.v;saveSet();const l=$('#rtl');if(l)l.textContent=ratioLabel(it.v);applyRatio();showCtl()}),
@@ -973,6 +1017,8 @@ const ACT={
     if(k==='_clrdl'){S.downloads.forEach(d=>{abortDl(d.key);rmFile(d)});S.downloads=[];saveDl();drawMe();drawNav();toast('Downloads deleted')}
     else if(k==='_cache')toast('Cache cleared');
     else if(k==='_reset'){S.set=Object.assign({},DEF,{name:S.set.name,photo:S.set.photo});saveSet();applySettings();drawMe();toast('Settings reset')}},
+  dstorage:async()=>{try{toast('Checking…');const r=await api('/api/storage');sheet('Server storage',[{t:'Videos stored',s:(r.bytes/1073741824).toFixed(2)+' GB · '+r.files+' files'},{t:'Unfinished uploads',s:r.unfinished+' · '+mb(r.unfinishedBytes||0)+' MB'},{t:'Free limit',s:'10 GB (Backblaze)'}],()=>{})}catch(e){toast((e&&e.error)||'Could not check')}},
+  dclean:()=>sheet('Cancel unfinished uploads?',[{t:'Cancel them now',s:'Do not do this while an upload is running',v:1},{t:'Keep',v:0}],async it=>{if(!it.v)return;try{const r=await api('/api/upload/cleanup',{method:'POST'});toast('Cancelled '+r.cancelled+' unfinished upload'+(r.cancelled===1?'':'s'))}catch(e){toast((e&&e.error)||'Failed')}}),
   'up-new':()=>uploadForm('new'),
   'up-next':nextSeason
 };
@@ -985,7 +1031,7 @@ addEventListener('online',offUI);addEventListener('offline',offUI);
 /* ---------- boot ---------- */
 applySettings();splash();
 const un=store.get('strm.unlock',null);
-if(TOKEN&&un&&un.kind){S.kind=un.kind;S.mode=un.kind==='dev'?store.get('strm.mode','dev'):'customer';renderMain();startBg();pollMe()}else renderGate();
+if(TOKEN&&un&&un.kind){S.kind=un.kind;S.tag=un.tag||'';S.mode=un.kind==='dev'?store.get('strm.mode','dev'):'customer';renderMain();startBg();pollMe()}else renderGate();
 wake();
 if('serviceWorker' in navigator&&!window.Capacitor&&location.protocol.indexOf('http')===0&&window.__SW)navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
