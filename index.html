@@ -238,6 +238,12 @@ button:active{transform:scale(.96)}.row:active,.shi:active,.erow:active{backgrou
 .epg{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px 0 6px}
 .epb{height:46px;border-radius:10px;background:var(--sf2);font-weight:500}
 .epb.on{background:linear-gradient(135deg,rgba(var(--acc-rgb),.55),rgba(var(--acc-rgb),.25));color:#fff;box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.7)}
+
+.player .toast{bottom:64px}
+.player .shw{flex-direction:row;justify-content:flex-end;align-items:center}
+.player .shw .sh{width:100%;max-width:480px;margin:0 12px 0 0;border-radius:18px;max-height:90%;animation:slr .25s cubic-bezier(.2,.9,.3,1)}
+@keyframes slr{from{transform:translateX(40px);opacity:0}}
+.player .shw.out .sh{transform:translateX(40px);opacity:0}
 </style>
 </head>
 <body>
@@ -661,19 +667,22 @@ function detectQ(file){
 function uploadForm(mode,sr,ctx){
   const sNo=mode==='new'?1:mode==='season'?sr.seasons.length+1:mode==='ep'?sr.seasons.length:ctx.s;
   const nNo=mode==='new'||mode==='season'?1:mode==='ep'?sr.seasons[sr.seasons.length-1].eps.reduce((a,e)=>Math.max(a,e.n),0)+1:ctx.n;
-  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,files:[],lang:(sr&&sr.langs&&sr.langs[0])||'Hindi',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
+  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,fmap:{},qsel:[],pickQ:0,lang:(sr&&sr.langs&&sr.langs[0])||'Hindi',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
   const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add file · S'+sNo+' EP '+nNo),b=$('.mbody',m);
   const feedOk=()=>mode==='file'||U.cats.some(c=>FEEDCATS.includes(c));
-  const ok=()=>U.title.trim()&&U.cover&&U.files.length&&U.files.every(f=>f.q)&&feedOk();
+  const ok=()=>U.title.trim()&&U.cover&&U.qsel.length&&U.qsel.every(q=>U.fmap[q])&&feedOk();
+  const total=()=>U.qsel.reduce((a,q)=>a+(U.fmap[q]?U.fmap[q].size:0),0);
   const draw=()=>{
+    U.qsel.sort((a,c)=>c-a);
     b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
     <label class="fl">Language</label><div class="qrow">${LANGS.map(l=>`<button class="qc ${U.lang===l?'on':''}" data-u="lang" data-v="${l}">${l}</button>`).join('')}</div>
-    <label class="fl">Video files (one per quality)</label>
-    ${U.files.map((f,i)=>`<div class="frow"><div><b>${f.q?f.q+'p':'Choose quality'}</b><small>${mb(f.file.size)} MB · ${esc(f.file.name)}</small></div><button data-u="rq" data-i="${i}">Quality</button><button data-u="rm" data-i="${i}" aria-label="Remove">${ic('x',16)}</button></div>`).join('')}
-    <button class="drop" data-u="pickvideo">${U.files.length?'Add another quality':'Choose video file(s)'}</button>
-    <div class="orig">The quality of each file is detected automatically. Add 1080p, 720p, 480p or 360p versions so viewers can switch.</div>
+    <label class="fl">Qualities to offer</label><div class="qrow">${[1080,720,480,360].map(q=>`<button class="qc ${U.qsel.includes(q)?'on':''}" data-u="qs" data-v="${q}">${q}p</button>`).join('')}</div>
+    <div class="orig">Viewers can switch between the qualities you pick. Each one needs its own real video file of that resolution, so 720p plays as real 720p.</div>
+    ${U.qsel.map(q=>{const f=U.fmap[q];return`<div class="frow"><div><b>${q}p</b><small>${f?mb(f.size)+' MB · '+esc(f.name):'No file chosen yet'}</small></div><button data-u="pq" data-q="${q}">${f?'Change':'Choose file'}</button></div>`}).join('')}
+    <button class="drop" data-u="auto">Choose files (quality is detected automatically)</button>
+    ${U.qsel.length?`<div class="orig">Total to upload: ${mb(total())} MB</div>`:''}
     ${mode==='file'?'':`<label class="fl">Categories</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
     <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div></div>`}
     <div class="prog" style="display:${U.busy?'block':'none'}"><div class="bar"><i style="width:${U.pct}%"></i></div><small class="sub" id="upm" style="padding:0">${esc(U.msg)}</small></div>
@@ -684,17 +693,27 @@ function uploadForm(mode,sr,ctx){
   draw();
   m.addEventListener('input',e=>{if(e.target.id==='uft'){U.title=e.target.value;const g=$('[data-u=go]',m);if(g)g.disabled=!(ok()&&!U.busy)}});
   $('#vf',m).addEventListener('change',async e=>{
-    for(const f of [...e.target.files]){const d=await detectQ(f);const ent={file:f,q:d.q};const i=d.q?U.files.findIndex(x=>x.q===d.q):-1;if(i>=0)U.files[i]=ent;else U.files.push(ent)}
-    e.target.value='';draw();
+    const files=[...e.target.files];e.target.value='';
+    for(const f of files){
+      const d=await detectQ(f);
+      if(U.pickQ){
+        if(d.q&&d.q!==U.pickQ){toast('That file is '+d.q+'p. Choose a '+U.pickQ+'p file for this slot.');continue}
+        U.fmap[U.pickQ]={file:f,name:f.name,size:f.size};
+      }else if(d.q){
+        U.fmap[d.q]={file:f,name:f.name,size:f.size};if(!U.qsel.includes(d.q))U.qsel.push(d.q);
+      }else toast('Could not read the quality of '+f.name+'. Use a quality slot instead.');
+    }
+    U.pickQ=0;draw();
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   async function run(){
     U.busy=true;U.err='';draw();
     try{
-      const total=U.files.reduce((a,f)=>a+f.file.size,0);let done=0;const up={};const t0=Date.now();
-      for(const f of U.files){
-        const r=await uploadFile(f.file,loaded=>{const all=done+loaded,sp=all/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,all/total*100),`Uploading ${f.q}p · ${mb(all)} / ${mb(total)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
-        up[f.q]={name:r.name,size:f.file.size};done+=f.file.size;
+      const all=total();let done=0;const up={};const t0=Date.now();
+      for(const q of [...U.qsel].sort((a,c)=>c-a)){
+        const f=U.fmap[q];
+        const r=await uploadFile(f.file,loaded=>{const x=done+loaded,sp=x/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,x/all*100),`Uploading ${q}p · ${mb(x)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
+        up[q]={name:r.name,size:f.size};done+=f.size;
       }
       prog(99,'Saving…');await commit(up);
     }catch(e){U.busy=false;U.err=(e&&e.error)||(e&&e.offline?'Connection lost. Tap Upload to continue where it stopped.':'Upload failed. Tap Upload to continue.');draw()}
@@ -716,14 +735,15 @@ function uploadForm(mode,sr,ctx){
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u;
     if(u==='x'){if(U.busy&&!confirm('Upload is running. Close anyway? You can resume later.'))return;m.remove();return}
     if(U.busy)return;
-    if(u==='pickvideo')$('#vf',m).click();
+    const vf=$('#vf',m);
+    if(u==='auto'){U.pickQ=0;vf.multiple=true;vf.click()}
+    else if(u==='pq'){U.pickQ=+t.dataset.q;vf.multiple=false;vf.click()}
+    else if(u==='qs'){const q=+t.dataset.v;U.qsel=U.qsel.includes(q)?U.qsel.filter(x=>x!==q):[...U.qsel,q];if(!U.qsel.includes(q))delete U.fmap[q];draw()}
     else if(u==='pickcover')$('#cf',m).click();
     else if(u==='autocover'){const tt=U.title.trim();if(!tt){toast('Type the title first');return}U.cover=cover(tt,(tt.length*47)%360,(tt.length*91+120)%360,tt.length*13+7);U.coverNew=true;draw()}
     else if(u==='lang'){U.lang=t.dataset.v;draw()}
     else if(u==='cat'){const v=t.dataset.v;U.cats=U.cats.includes(v)?U.cats.filter(x=>x!==v):[...U.cats,v];draw()}
     else if(u==='tg'){U.final=!U.final;draw()}
-    else if(u==='rm'){U.files.splice(+t.dataset.i,1);draw()}
-    else if(u==='rq'){const i=+t.dataset.i;sheet('Quality of this file',[1080,720,480,360].map(q=>({t:q+'p',on:U.files[i].q===q,v:q})),it=>{U.files.forEach((f,j)=>{if(j!==i&&f.q===it.v)f.q=0});U.files[i].q=it.v;U.files=U.files.filter((f,j)=>j===i||f.q);draw()})}
     else if(u==='go'&&ok())run()});
 }
 function keysModal(){
