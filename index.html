@@ -244,6 +244,20 @@ button:active{transform:scale(.96)}.row:active,.shi:active,.erow:active{backgrou
 .player .shw .sh{width:100%;max-width:480px;margin:0 12px 0 0;border-radius:18px;max-height:90%;animation:slr .25s cubic-bezier(.2,.9,.3,1)}
 @keyframes slr{from{transform:translateX(40px);opacity:0}}
 .player .shw.out .sh{transform:translateX(40px);opacity:0}
+
+/* fullscreen side panel (slim, text only) */
+.player .shw{flex-direction:row;justify-content:flex-end;align-items:stretch}
+.player .shw .shb{background:transparent}
+.player .shw .sh{width:clamp(160px,26%,260px);max-width:none;max-height:none;height:calc(100% - 24px);margin:12px 0;padding:10px 4px;border-radius:18px 0 0 18px;background:rgba(10,10,12,.62);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;flex-direction:column;justify-content:center;overflow-y:auto;color:#fff;animation:slr .25s cubic-bezier(.2,.9,.3,1)}
+.player .sh h4,.player .sh .grab,.player .sh>.sub{display:none}
+.player .shi{border:0;padding:13px 18px;font-size:1.05rem;display:block;text-align:left;width:100%}
+.player .shi span{display:block}
+.player .shi em{display:block;font-size:.72rem;color:rgba(255,255,255,.6);margin-top:2px}
+.player .shi svg{display:none}
+.player .shi.on,.player .shi.on em{color:color-mix(in srgb,var(--acc) 45%,#fff);font-weight:600}
+.player .shw .sh.epsh{width:clamp(280px,46%,420px);justify-content:flex-start;min-height:0}
+.player .epsh .ephd{padding:6px 12px 10px}
+.player .epsh .epg{padding:12px}
 </style>
 </head>
 <body>
