@@ -230,7 +230,14 @@ button:active{transform:scale(.96)}.row:active,.shi:active,.erow:active{backgrou
 .pill-red{color:#ff7a8a!important}
 .lock .sh{pointer-events:auto}
 
-#content.nos{display:flex;flex-direction:column}.chatpage{flex:1;min-height:0}
+.player.fs .art{display:none}
+.player.fs .stage{background:radial-gradient(circle at 50% 50%,#2a2a2f 0%,#101012 55%,#000 100%)}
+.feeds{gap:18px;overflow-x:auto;scrollbar-width:none}.feeds::-webkit-scrollbar{display:none}.feeds button{white-space:nowrap}
+.epsh{min-height:48%}.ephd{display:flex;justify-content:space-between;align-items:center;padding:2px 0 12px;border-bottom:1px solid var(--line)}
+.ephd .btn2{display:flex;align-items:center;gap:6px}
+.epg{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px 0 6px}
+.epb{height:46px;border-radius:10px;background:var(--sf2);font-weight:500}
+.epb.on{background:linear-gradient(135deg,rgba(var(--acc-rgb),.55),rgba(var(--acc-rgb),.25));color:#fff;box-shadow:inset 0 0 0 1px rgba(var(--acc-rgb),.7)}
 </style>
 </head>
 <body>
@@ -256,7 +263,7 @@ const BAKED_API='';
 let API=String(BAKED_API||window.STREAMLY_API||store.get('strm.api','')).replace(/\/+$/,'');
 let TOKEN=store.get('strm.tok','');
 /* icons */
-const P={home:'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',list:'M4 6h13M4 12h13M4 18h8M17 15v6M14 18h6',download:'M12 4v11m0 0l-4-4m4 4l4-4M5 20h14',chat:'M4 5h16v11H10l-5 4v-4H4z',me:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',upload:'M12 20V9m0 0l-4 4m4-4l4 4M5 4h14',search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',play:'M7 4.5v15l12-7.5z',pause:'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z',fs:'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',fsx:'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5',back:'M15 5l-7 7 7 7',plus:'M12 5v14M5 12h14',check:'M5 12.5l4.5 4.5L19 7',speed:'M12 14l4-5M4 17a9 9 0 1 1 16 0',globe:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',layers:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',x:'M6 6l12 12M18 6L6 18',chev:'M6 9l6 6 6-6',trash:'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13',star:'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',send:'M4 12l16-8-6 16-2-6z',pausei:'M8 5v14M16 5v14'};
+const P={home:'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',list:'M4 6h13M4 12h13M4 18h8M17 15v6M14 18h6',download:'M12 4v11m0 0l-4-4m4 4l4-4M5 20h14',chat:'M4 5h16v11H10l-5 4v-4H4z',me:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',upload:'M12 20V9m0 0l-4 4m4-4l4 4M5 4h14',search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',play:'M7 4.5v15l12-7.5z',pause:'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z',fs:'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',fsx:'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5',back:'M15 5l-7 7 7 7',plus:'M12 5v14M5 12h14',check:'M5 12.5l4.5 4.5L19 7',speed:'M12 14l4-5M4 17a9 9 0 1 1 16 0',globe:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',layers:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',x:'M6 6l12 12M18 6L6 18',chev:'M6 9l6 6 6-6',trash:'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13',star:'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',send:'M4 12l16-8-6 16-2-6z',pausei:'M8 5v14M16 5v14',ratio:'M3 7h18v10H3zM7 7v10M17 7v10'};
 const FILL=new Set(['play','pause','star']);
 const ic=(n,s=22,sw=1.8)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${FILL.has(n)?'currentColor':'none'}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[n]}"/></svg>`;
 const logo=(sz,cls='')=>`<svg class="logo ${cls}" width="${sz}" height="${sz}" viewBox="0 0 96 96"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b79cff"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect class="bx" x="4" y="4" width="88" height="88" rx="26" fill="url(#lg)"/><path class="s" d="M64 34c-4-8-30-9-30 3 0 13 30 8 30 22 0 12-27 12-34 3" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="M60 22l14 8-14 8z" fill="#fff" opacity=".92"/></svg>`;
@@ -274,10 +281,14 @@ function cover(title,h1,h2,seed){
 }
 /* constants + state */
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
-const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing'};
+const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
+const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movie'};
+const FEEDCATS=Object.values(FEEDCAT);
+const RATIOS=[['16:9','16:9','Default'],['4:3','4:3',''],['21:9','21:9','Cinema'],['orig','Original','Video\'s own shape'],['fill','Fill screen','Crops the edges']];
+const ratioLabel=r=>(RATIOS.find(x=>x[0]===r)||RATIOS[0])[1];
 const GENRES=['Adventure','Reincarnated','Action','Fantasy'];
 const LANGS=['Hindi','English','Urdu','Japanese','Tamil'];
-const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:2,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:''};
+const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:2,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9'};
 const S={kind:null,mode:'customer',tab:'home',feed:'foryou',q:'',set:Object.assign({},DEF,store.get('strm.set',{})),series:store.get('strm.cat5',[]),playlist:store.get('strm.pl',[]),downloads:store.get('strm.dl',[]),unread:0};
 const saveSet=()=>store.set('strm.set',S.set);
 const saveDl=()=>store.set('strm.dl',S.downloads.map(d=>({...d,run:undefined})));
@@ -427,7 +438,7 @@ const newest=s=>s.ts&&Date.now()-s.ts<2592e5?'<span class="nw">NEW</span>':'';
 function feedList(){
   let l=[...S.series];const q=S.q.trim().toLowerCase();
   if(q)return l.filter(s=>s.title.toLowerCase().includes(q)||(s.cats||[]).some(c=>c.toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
-  l=l.filter(s=>(s.cats||[]).includes(FEEDS[S.feed]));
+  l=l.filter(s=>(s.cats||[]).includes(FEEDCAT[S.feed]));
   if(S.feed==='trending')l.sort((a,b)=>(b.views||0)-(a.views||0)||b.ts-a.ts);else l.sort((a,b)=>b.ts-a.ts);
   return l;
 }
@@ -594,10 +605,10 @@ function manage(id){
     else if(u==='cats'){editCats(sr)}
     else if(u==='delser')confirmDelete('Delete "'+sr.title+'"?','All seasons, episodes and video files',async()=>{await deleteSeries(id);m.remove()})});
 }
-function catChips(sel){return [...GENRES,'For you','Trending','Ongoing'].map(c=>`<button class="qc ${sel.includes(c)?'on':''}" data-u="cat" data-v="${c}">${c}</button>`).join('')}
+function catChips(sel){return [...GENRES,'For you','Trending','Ongoing','Movie'].map(c=>`<button class="qc ${sel.includes(c)?'on':''}" data-u="cat" data-v="${c}">${c}</button>`).join('')}
 function editCats(sr){
   const m=modal('Categories'),b=$('.mbody',m);let sel=[...(sr.cats||[])];
-  const draw=()=>{b.innerHTML=`<p class="sub" style="padding:0 0 10px">Pick where this video shows. For you, Trending and Ongoing are the Home tabs.</p><div class="qrow">${catChips(sel)}</div><button class="cta" style="width:100%;margin-top:22px" data-u="save" ${sel.some(c=>Object.values(FEEDS).includes(c))?'':'disabled'}>Save</button>`};draw();
+  const draw=()=>{b.innerHTML=`<p class="sub" style="padding:0 0 10px">Pick where this video shows. For you, Trending, Ongoing and Movie are the Home tabs.</p><div class="qrow">${catChips(sel)}</div><button class="cta" style="width:100%;margin-top:22px" data-u="save" ${sel.some(c=>FEEDCATS.includes(c))?'':'disabled'}>Save</button>`};draw();
   m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t)return;
     if(t.dataset.u==='x')m.remove();
     else if(t.dataset.u==='cat'){const v=t.dataset.v;sel=sel.includes(v)?sel.filter(x=>x!==v):[...sel,v];draw()}
@@ -652,7 +663,7 @@ function uploadForm(mode,sr,ctx){
   const nNo=mode==='new'||mode==='season'?1:mode==='ep'?sr.seasons[sr.seasons.length-1].eps.reduce((a,e)=>Math.max(a,e.n),0)+1:ctx.n;
   const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,files:[],lang:(sr&&sr.langs&&sr.langs[0])||'Hindi',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
   const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add file · S'+sNo+' EP '+nNo),b=$('.mbody',m);
-  const feedOk=()=>mode==='file'||U.cats.some(c=>Object.values(FEEDS).includes(c));
+  const feedOk=()=>mode==='file'||U.cats.some(c=>FEEDCATS.includes(c));
   const ok=()=>U.title.trim()&&U.cover&&U.files.length&&U.files.every(f=>f.q)&&feedOk();
   const draw=()=>{
     b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
@@ -663,7 +674,7 @@ function uploadForm(mode,sr,ctx){
     ${U.files.map((f,i)=>`<div class="frow"><div><b>${f.q?f.q+'p':'Choose quality'}</b><small>${mb(f.file.size)} MB · ${esc(f.file.name)}</small></div><button data-u="rq" data-i="${i}">Quality</button><button data-u="rm" data-i="${i}" aria-label="Remove">${ic('x',16)}</button></div>`).join('')}
     <button class="drop" data-u="pickvideo">${U.files.length?'Add another quality':'Choose video file(s)'}</button>
     <div class="orig">The quality of each file is detected automatically. Add 1080p, 720p, 480p or 360p versions so viewers can switch.</div>
-    ${mode==='file'?'':`<label class="fl">Categories</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending or Ongoing.</div>'}
+    ${mode==='file'?'':`<label class="fl">Categories</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
     <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div></div>`}
     <div class="prog" style="display:${U.busy?'block':'none'}"><div class="bar"><i style="width:${U.pct}%"></i></div><small class="sub" id="upm" style="padding:0">${esc(U.msg)}</small></div>
     ${U.err?`<div class="err" style="margin-top:12px">${esc(U.err)}</div>`:''}
@@ -723,14 +734,14 @@ function keysModal(){
     const on=t.dataset.a==='1';try{await api('/api/keys/'+t.dataset.h,{json:{active:on?0:1}});toast(on?'Key deactivated. That user is signed out.':'Key activated');draw()}catch(er){toast((er&&er.error)||'Failed')}});
 }
 /* ---------- video page + player ---------- */
-let D=null;const PL={q:0,base:1,hideT:0,bufT:0,lpT:0};
+let D=null;const PL={q:0,base:1,hideT:0,bufT:0,lpT:0,ratio:S.set.ratio||'16:9'};
 const cur=()=>ser(D.id);
 const V=()=>$('#vid');
 function playerHTML(){const s=cur();return`<div class="stage" id="stage"><div class="art" style="background-image:url('${s.cover}')"></div><video id="vid" playsinline preload="auto"></video><div class="buf" id="buf"><div><div class="sp"></div><small id="bufm"></small></div></div><div class="fx l" id="fxl">« 10s</div><div class="fx r" id="fxr">10s »</div><div class="hold" id="hold">${ic('speed',16)}<span id="holdv">2×</span></div>
 <div class="ctl show" id="ctl"><div class="ctop"><button class="ib" data-act="p-back" aria-label="Back">${ic('back',22)}</button><span class="ctitle" id="ctitle"></span></div>
 <div class="cmid"><button class="ib sk" data-act="p-skip" data-v="-10">−10</button><button class="ib big" data-act="p-play" id="ppb" aria-label="Play or pause">${ic('play',26)}</button><button class="ib sk" data-act="p-skip" data-v="10">+10</button></div>
 <div class="cbot"><div class="seekrow"><span id="tcur">0:00</span><input type="range" class="seek" id="seek" min="0" max="1" value="0" step="1" aria-label="Seek"><span id="tdur">0:00</span><button class="ib" data-act="p-fs" id="fsb" aria-label="Fullscreen">${ic('fs',20)}</button></div>
-<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button><button data-act="p-dl">${ic('download',20)}<span>Download</span></button><button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
+<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button><button data-act="p-dl">${ic('download',20)}<span>Download</span></button><button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-ratio">${ic('ratio',20)}<span id="rtl">${ratioLabel(PL.ratio)}</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
 function pui(){
   const v=V();if(!v||!$('#seek'))return;const d=isFinite(v.duration)?v.duration:0,sk=$('#seek');
   sk.max=d||1;sk.value=v.currentTime||0;$('#tcur').textContent=fmt(v.currentTime);$('#tdur').textContent=fmt(d);
@@ -765,7 +776,19 @@ function ended(){
   else showCtl();
 }
 function nativeFs(on){try{if(!NATIVE)return;const SO=plug('ScreenOrientation'),SB=plug('StatusBar');if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.hide().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{})}}catch(e){}}
-function fitRot(){const pl=$('#pl');if(!pl)return;pl.classList.toggle('rot',pl.classList.contains('fs')&&innerHeight>innerWidth)}
+function applyRatio(){
+  const pl=$('#pl'),v=V(),st=$('#stage');if(!pl||!v||!st)return;
+  if(!pl.classList.contains('fs')){v.style.cssText='';return}
+  const W=st.clientWidth,H=st.clientHeight;if(!W||!H)return;
+  let w,h,fit='contain';
+  if(PL.ratio==='fill'){w=W;h=H;fit='cover'}
+  else{
+    const q=PL.ratio==='orig'?((v.videoWidth&&v.videoHeight)?v.videoWidth/v.videoHeight:16/9):({'16:9':16/9,'4:3':4/3,'21:9':21/9}[PL.ratio]||16/9);
+    if(W/H>q){h=H;w=H*q}else{w=W;h=W/q}
+  }
+  v.style.cssText='position:absolute;left:50%;top:50%;width:'+w+'px;height:'+h+'px;transform:translate(-50%,-50%);object-fit:'+fit+';background:#000';
+}
+function fitRot(){const pl=$('#pl');if(!pl)return;pl.classList.toggle('rot',pl.classList.contains('fs')&&innerHeight>innerWidth);applyRatio()}
 addEventListener('resize',fitRot);addEventListener('orientationchange',()=>setTimeout(fitRot,150));
 function fsToggle(on){
   const pl=$('#pl');if(!pl)return;const want=on===undefined?!pl.classList.contains('fs'):on;
@@ -777,7 +800,7 @@ document.addEventListener('fullscreenchange',()=>{const pl=$('#pl');if(!document
 function fx(side){const e=$('#fx'+side);e.classList.add('on');setTimeout(()=>e.classList.remove('on'),550)}
 function bindPlayer(){
   const st=$('#stage'),v=V();let ht=0,held=false,last=0,tt=0;
-  ['timeupdate','play','pause','durationchange','loadedmetadata','seeked'].forEach(ev=>v.addEventListener(ev,pui));
+  ['timeupdate','play','pause','durationchange','loadedmetadata','seeked'].forEach(ev=>v.addEventListener(ev,pui));v.addEventListener('loadedmetadata',applyRatio);
   v.addEventListener('play',()=>showCtl());v.addEventListener('pause',()=>showCtl());
   v.addEventListener('waiting',()=>showBuf('',350));v.addEventListener('playing',hideBuf);v.addEventListener('canplay',hideBuf);v.addEventListener('ended',ended);
   v.addEventListener('error',()=>{if(!D)return;hideBuf();toast(navigator.onLine||D.offline?'This video could not be played':'No internet. Only downloaded videos can play.')});
@@ -831,6 +854,23 @@ function dlSheet(n){
   const pref=S.set.dlQ;if(pref!=='ask'){startDownload(D.id,D.s,n,D.lang,pickQ(qs,pref));return}
   sheet(`Download S${D.s} · E${n}`,qs.map(q=>({t:q+'p',s:mb(fs[q].size)+' MB',v:q,on:S.downloads.some(d=>d.key===[D.id,D.s,n,D.lang,q].join('-'))})),it=>startDownload(D.id,D.s,n,D.lang,it.v),'The size shown is the real file size for each quality.');
 }
+function pickEp(si,n){D.s=si;D.n=n;D.chip=n;const ls=epLangs(epObj(cur(),si,n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()}
+function epPopup(){
+  const s=cur();let ps=D.s;
+  const w=el(`<div class="shw"><div class="shb"></div><div class="sh epsh"><div class="grab"></div><div class="ephd"><button class="btn2" data-e="season"></button><button class="ib" data-e="x" aria-label="Close">${ic('x',22)}</button></div><div class="epg"></div></div></div>`);
+  host().appendChild(w);
+  const draw=()=>{
+    $('[data-e=season]',w).innerHTML=`Season ${pad(ps)} ${ic('chev',16)}`;
+    const eps=[...s.seasons[ps-1].eps].sort((a,b)=>a.n-b.n);
+    $('.epg',w).innerHTML=eps.map(e=>`<button class="epb ${ps===D.s&&e.n===D.n?'on':''}" data-n="${e.n}">${pad(e.n)}</button>`).join('');
+  };
+  draw();
+  w.addEventListener('click',e=>{
+    if(e.target.classList.contains('shb')||e.target.closest('[data-e=x]')){w.remove();return}
+    if(e.target.closest('[data-e=season]')){sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===ps})),it=>{ps=it.v;draw()});return}
+    const b=e.target.closest('.epb');if(b){const n=+b.dataset.n;w.remove();pickEp(ps,n)}
+  });
+}
 /* ---------- back button ---------- */
 let exitArm=0;
 function handleBack(){
@@ -869,6 +909,7 @@ const ACT={
   'p-q':()=>{const ep=epObj(cur(),D.s,D.n),fs=(ep.files||{})[D.lang]||{},qs=D.offline?[D.q]:epQs(ep,D.lang);sheet('Quality',qs.map(q=>({t:q+'p',s:fs[q]?mb(fs[q].size)+' MB':'',v:q,on:q===PL.q})),it=>{if(it.v!==PL.q)switchQ(it.v)})},
   'p-dl':()=>dlSheet(D.n),
   'p-lang':()=>ACT['d-lang'](),
+  'p-ratio':()=>sheet('Aspect ratio',RATIOS.map(([v,t,s])=>({t,s,v,on:PL.ratio===v})),it=>{PL.ratio=it.v;S.set.ratio=it.v;saveSet();const l=$('#rtl');if(l)l.textContent=ratioLabel(it.v);applyRatio();showCtl()}),
   'p-speed':()=>sheet('Playback speed',SPEEDS.map(x=>({t:x+'×',v:x,on:x===PL.base})),it=>{PL.base=it.v;V().playbackRate=it.v;pui()}),
   addpl:()=>{const i=S.playlist.indexOf(D.id);if(i<0){S.playlist.push(D.id);toast('Added to Playlist')}else{S.playlist.splice(i,1);toast('Removed from Playlist')}store.set('strm.pl',S.playlist);drawDetail()},
   'd-dl':()=>dlSheet(D.n),
@@ -878,7 +919,7 @@ const ACT={
     else confirmDelete('Delete "'+s.title+'"?','All seasons, episodes and video files',()=>deleteSeries(s.id))})},
   'd-lang':()=>{const ep=epObj(cur(),D.s,D.n);if(D.offline)return;sheet('Language',epLangs(ep).map(l=>({t:l,on:l===D.lang})),it=>{if(it.t!==D.lang)switchLang(it.t)})},
   'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>{if(it.v===D.s)return;D.s=it.v;const e0=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n)[0];D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()})},
-  'd-chip':t=>{const v=t.dataset.v;if(v==='all')D.chip='all';else{D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
+  'd-chip':t=>{const v=t.dataset.v;if(v==='all'){epPopup();return}else{D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
   'd-ep':t=>{D.n=+t.dataset.v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},
   'd-tab':t=>{D.tab=t.dataset.v;drawDetail()},
   'd-info':()=>{const s=cur(),ep=epObj(s,D.s,D.n);sheet('About '+s.title,[{t:'Categories',s:(s.cats||[]).join(', ')},{t:'Year',s:String(s.year||'')},{t:'Languages',s:(s.langs||[]).join(', ')},{t:'This episode',s:epQs(ep,D.lang).map(q=>q+'p').join(', ')},{t:'Seasons',s:String(s.seasons.length)}],()=>{})},
