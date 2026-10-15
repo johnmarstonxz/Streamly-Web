@@ -293,7 +293,7 @@ const CONFIG_URL='https://johnmarstonxz.github.io/Streamly-Web/config.js';
 function loadConfig(){
   return new Promise(res=>{
     if(API)return res();
-    const s=document.createElement('script');s.src=(NATIVE?CONFIG_URL:'config.js')+'?v='+Date.now();
+    const s=document.createElement('script');s.src=((NATIVE||location.protocol==='file:')?CONFIG_URL:'config.js')+'?v='+Date.now();
     s.onload=()=>{if(window.STREAMLY_API){API=String(window.STREAMLY_API).replace(/\/+$/,'');store.set('strm.api',API)}res()};
     s.onerror=()=>res();document.head.appendChild(s);
   });
@@ -602,7 +602,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly 2.1':mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box"><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box"><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}${(APK_OK&&!isApp())?`<div class="row" data-act="apk"><span>Download Android app</span><em>APK ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -1002,6 +1002,28 @@ function epPopup(){
     const b=e.target.closest('.epb');if(b){const n=+b.dataset.n;w.remove();pickEp(ps,n)}
   });
 }
+/* ---------- "Get the app" popup (website only) ---------- */
+const APK_FILE='Streamly-Android.apk';
+let APK_OK=false,deferredPrompt=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});
+const isApp=()=>NATIVE||location.protocol==='file:'||(matchMedia('(display-mode: standalone)').matches)||!!navigator.standalone;
+async function checkApk(){if(isApp()||!/^https?:/.test(location.protocol))return;try{const r=await fetch(APK_FILE,{method:'HEAD',cache:'no-store'});APK_OK=r.ok}catch(e){}}
+function installPopup(){
+  if(isApp()||$('.shw'))return;
+  if(Date.now()<store.get('strm.apkSkip',0))return;
+  const android=/Android/i.test(navigator.userAgent||'');
+  const mode=android&&APK_OK?'apk':(deferredPrompt?'pwa':'');if(!mode)return;
+  const w=el(`<div class="shw"><div class="shb"></div><div class="sh" style="text-align:center;padding:22px 18px calc(18px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(60)}</div><h4 style="margin:12px 0 4px;font-size:1.15rem">Get the Streamly app</h4><p class="sub" style="padding:0 0 16px">${mode==='apk'?'Download the Android app for a faster, full screen experience. When it finishes, open the file and allow installs from this browser if Android asks.':'Install Streamly on this device. It opens in its own window like a real app.'}</p>${mode==='apk'?`<a class="cta" style="display:block;text-decoration:none" href="${APK_FILE}?v=${Date.now()}" download data-i="dl">Download app (APK)</a>`:`<button class="cta" style="width:100%" data-i="pwa">Install app</button>`}<button class="btn2" style="width:100%;margin-top:10px" data-i="no">Not now</button></div></div>`);
+  app.appendChild(w);
+  const close=days=>{store.set('strm.apkSkip',Date.now()+days*864e5);w.remove()};
+  w.addEventListener('click',async e=>{
+    if(e.target.classList.contains('shb')){close(2);return}
+    const b=e.target.closest('[data-i]');if(!b)return;const i=b.dataset.i;
+    if(i==='no')close(3);
+    else if(i==='dl')setTimeout(()=>close(14),300);
+    else if(i==='pwa'){try{deferredPrompt.prompt();await deferredPrompt.userChoice}catch(x){}deferredPrompt=null;close(14)}
+  });
+}
 /* ---------- back button ---------- */
 let exitArm=0;
 function handleBack(){
@@ -1080,6 +1102,7 @@ const ACT={
     else if(k==='_reset'){S.set=Object.assign({},DEF,{name:S.set.name,photo:S.set.photo});saveSet();applySettings();drawMe();toast('Settings reset')}},
   dstorage:async()=>{try{toast('Checking…');const r=await api('/api/storage');sheet('Server storage',[{t:'Videos stored',s:(r.bytes/1073741824).toFixed(2)+' GB · '+r.files+' files'},{t:'Unfinished uploads',s:r.unfinished+' · '+mb(r.unfinishedBytes||0)+' MB'},{t:'Free limit',s:'10 GB (Backblaze)'}],()=>{})}catch(e){toast((e&&e.error)||'Could not check')}},
   dclean:()=>sheet('Cancel unfinished uploads?',[{t:'Cancel them now',s:'Do not do this while an upload is running',v:1},{t:'Keep',v:0}],async it=>{if(!it.v)return;try{const r=await api('/api/upload/cleanup',{method:'POST'});toast('Cancelled '+r.cancelled+' unfinished upload'+(r.cancelled===1?'':'s'))}catch(e){toast((e&&e.error)||'Failed')}}),
+  apk:()=>{location.href=APK_FILE+'?v='+Date.now()},
   'up-new':()=>uploadForm('new'),
   'up-next':nextSeason
 };
@@ -1091,6 +1114,7 @@ const offUI=()=>{const o=$('#offchip');if(o)o.style.display=navigator.onLine?'no
 addEventListener('online',offUI);addEventListener('offline',offUI);
 /* ---------- boot ---------- */
 applySettings();splash();wake();
+if(!isApp())checkApk().then(()=>setTimeout(installPopup,3800));
 loadConfig().then(()=>{
   const un=store.get('strm.unlock',null);
   if(TOKEN&&un&&un.kind){S.kind=un.kind;S.tag=un.tag||'';S.mode=un.kind==='dev'?store.get('strm.mode','dev'):'customer';renderMain();startBg();pollMe()}else renderGate();
