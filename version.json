@@ -1,5 +1,5 @@
 {
-  "version": "2.3",
-  "notes": "This release brings a new look, watch history, language filters and smoother quality switching.",
+  "version": "2.4",
+  "notes": "Chat is fixed and faster, videos can now have several languages, and quality switching works like YouTube.",
   "force": false
 }

@@ -334,7 +334,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='2.3';
+const APP_VERSION='2.4';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movie'};
@@ -342,8 +342,8 @@ const FEEDCATS=Object.values(FEEDCAT);
 const RATIOS=[['16:9','16:9','Default'],['4:3','4:3',''],['21:9','21:9','Cinema'],['orig','Original','Video\'s own shape'],['fill','Fill screen','Crops the edges']];
 const ratioLabel=r=>(RATIOS.find(x=>x[0]===r)||RATIOS[0])[1];
 const GENRES=['Adventure','Reincarnated','Action','Fantasy'];
-const LANGS=['Hindi','English','Tamil','Telugu','Japanese','Urdu'];
-const FLANGS=['English','Hindi','Tamil','Telugu','Japanese'];
+const LANGS=['Hindi','English','Japanese','Tamil','Telugu','Malayalam','Urdu'];
+const FLANGS=['Hindi','English','Japanese'];
 const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:2,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9',volume:1,subLang:''};
 const S={kind:null,mode:'customer',tab:'home',feed:'foryou',q:'',set:Object.assign({},DEF,store.get('strm.set',{})),series:store.get('strm.cat5',[]),playlist:store.get('strm.pl',[]),downloads:store.get('strm.dl',[]),unread:0};
 const saveSet=()=>store.set('strm.set',S.set);
@@ -418,14 +418,26 @@ async function pollUnread(){
     let seen=store.get('strm.seen',null);
     if(seen===null){await chatPoll('chat');seen=chatState('chat').after;store.set('strm.seen',seen)}
     const r=await api('/api/chat/unread?after='+seen);
-    if(r.n>S.unread)toast('New message in Chats');
+    if(r.n>S.unread){
+      try{await chatPoll('chat')}catch(e){}
+      const last=[...chatState('chat').msgs].reverse().find(m=>!m.mine);
+      if(last){toast(last.name+': '+String(last.text).slice(0,70));notifyOS(last.name,last.text);try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}}else toast('New message in Chats');
+    }
     if(r.n!==S.unread){S.unread=r.n;drawNav()}
+  }catch(e){}
+}
+function notifyOS(title,body){
+  try{
+    if(typeof Notification==='undefined'||Notification.permission!=='granted'||!document.hidden)return;
+    const o={body:String(body).slice(0,120),icon:LOGO,tag:'chat'};
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(title,o):new Notification(title,o));else new Notification(title,o);
   }catch(e){}
 }
 let bgOn=false;
 function startBg(){
   if(bgOn)return;bgOn=true;loadCatalog();
-  setInterval(loadCatalog,15000);setInterval(pollMe,8000);setInterval(pollUnread,10000);setInterval(chatTick,3000);
+  api('/api/ping',{noauth:true}).then(r=>{if(!r.v||r.v<3){S.srvOld=true;if(S.kind==='dev')toast('The server is out of date. Update it so chat works.')}}).catch(()=>{});
+  setInterval(loadCatalog,15000);setInterval(pollMe,8000);setInterval(pollUnread,5000);setInterval(chatTick,1200);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){pollMe();loadCatalog();chatTick()}});
   addEventListener('online',()=>{pollMe();loadCatalog();resumeDownloads()});
   resumeDownloads();
@@ -491,20 +503,20 @@ function go(t){
   ({home:drawHome,playlist:drawPlaylist,downloads:drawDownloads,chats:drawChats,me:drawMe,upload:drawUpload})[t]();
   drawNav();popAnim(c,'pa2');
 }
-const card=(s,badge='')=>`<div class="card" data-act="open" data-id="${s.id}"><div class="cv"><img src="${s.cover}" alt="" loading="lazy"><span class="lg">${esc((s.langs||[''])[0])}</span>${badge}</div><p>${esc(s.title)}</p></div>`;
+const card=(s,badge='')=>`<div class="card" data-act="open" data-id="${s.id}"><div class="cv"><img src="${s.cover}" alt="" loading="lazy"><span class="lg">${esc((S.lang&&(s.langs||[]).includes(S.lang))?S.lang:(s.langs||[''])[0])}</span>${badge}</div><p>${esc(s.title)}</p></div>`;
 const newest=s=>s.ts&&Date.now()-s.ts<2592e5?'<span class="nw">NEW</span>':'';
 function feedList(){
   let l=[...S.series];const q=S.q.trim().toLowerCase();
   if(q)return l.filter(s=>s.title.toLowerCase().includes(q)||(s.cats||[]).some(c=>c.toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
   l=l.filter(s=>(s.cats||[]).includes(FEEDCAT[S.feed]));
-  if(S.feed==='foryou'&&S.lang)l=l.filter(s=>(s.langs||[]).includes(S.lang));
+  if(S.lang)l=l.filter(s=>(s.langs||[]).includes(S.lang));
   if(S.feed==='trending')l.sort((a,b)=>(b.views||0)-(a.views||0)||b.ts-a.ts);else l.sort((a,b)=>b.ts-a.ts);
   return l;
 }
 function drawGrid(){const l=feedList();$('#grid').innerHTML=l.length?l.map(s=>card(s,newest(s))).join(''):`<div class="empty" style="grid-column:1/-1"><b>${S.series.length?(S.q?'No results':'Nothing here yet'):'No videos yet'}</b>${S.series.length?(S.q?'Try another title or genre.':'Videos added to this section will show up here.'):(S.mode==='dev'?'Open the Upload tab and tap Add New.':'New videos from the developer will show up here.')}</div>`}
 function drawHome(){
   $('#feedbar').innerHTML=`<div class="sfix"><div class="search"><div class="sbox">${ic('search',18)}<input id="q" placeholder="Search videos" value="${esc(S.q)}" enterkeyhint="search"></div><button class="sbtn" data-act="dosearch">Search</button></div></div>`;
-  $('#content').innerHTML=`<div class="hdr"><div class="brand">${logo(26)}<span>Streamly</span></div><div class="chip-s">${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span></div></div><div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${S.feed==='foryou'?langChips():''}</div><div class="grid" id="grid"></div>`;
+  $('#content').innerHTML=`<div class="hdr"><div class="brand">${logo(26)}<span>Streamly</span></div><div class="chip-s">${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span></div></div><div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${langChips()}</div><div class="grid" id="grid"></div>`;
   drawGrid();
 }
 function drawPlaylist(){
@@ -588,12 +600,13 @@ function mountChat(hostEl,scope,ph,cls){
 function paintMsgs(bottom){
   if(!MOUNT)return;const box=$('.msgs',MOUNT.host);if(!box)return;const c=chatState(MOUNT.scope);
   const near=box.scrollHeight-box.scrollTop-box.clientHeight<90;
-  box.innerHTML=c.msgs.length?c.msgs.map(bubble).join(''):`<div class="empty"><b>No messages yet</b>Be the first to say hi.</div>`;
+  box.innerHTML=c.msgs.length?c.msgs.map(bubble).join(''):(MOUNT.err?`<div class="empty"><b>Chat is not working</b>${esc(S.srvOld?'The server is out of date. Update the server files and try again.':MOUNT.err)}</div>`:`<div class="empty"><b>No messages yet</b>Be the first to say hi.</div>`);
   if(!MOUNT.host.classList.contains('cmb')&&(bottom||near))box.scrollTop=box.scrollHeight;
 }
 async function chatTick(){
   if(!MOUNT||!TOKEN||!navigator.onLine||document.hidden)return;const sc=MOUNT.scope;
-  try{const n=await chatPoll(sc);if(sc==='chat')store.set('strm.seen',chatState('chat').after);if(n&&MOUNT&&MOUNT.scope===sc)paintMsgs()}catch(e){}
+  try{const n=await chatPoll(sc);if(MOUNT)MOUNT.err='';if(sc==='chat')store.set('strm.seen',chatState('chat').after);if(n&&MOUNT&&MOUNT.scope===sc)paintMsgs()}
+  catch(e){if(MOUNT&&MOUNT.scope===sc){const msg=(e&&e.error)||(e&&e.offline?'No internet connection':'Server error');if(MOUNT.err!==msg){MOUNT.err=msg;paintMsgs()}}}
 }
 function msgMenu(mid){
   if(!MOUNT)return;const sc=MOUNT.scope,m=chatState(sc).msgs.find(x=>x.id===mid);if(!m)return;
@@ -625,7 +638,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box"><div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}${(APK_OK&&!isApp())?`<div class="row" data-act="apk"><span>Download Android app</span><em>APK ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}${(APK_OK&&!isApp())?`<div class="row" data-act="apk"><span>Download Android app</span><em>APK ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -787,22 +800,20 @@ function detectQ(file){
 function uploadForm(mode,sr,ctx){
   const sNo=mode==='new'?1:mode==='season'?sr.seasons.length+1:mode==='ep'?sr.seasons.length:ctx.s;
   const nNo=mode==='new'||mode==='season'?1:mode==='ep'?sr.seasons[sr.seasons.length-1].eps.reduce((a,e)=>Math.max(a,e.n),0)+1:ctx.n;
-  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,file:null,fq:0,want:[],lang:(sr&&sr.langs&&sr.langs[0])||'Hindi',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
-  const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add file · S'+sNo+' EP '+nNo),b=$('.mbody',m);
+  const WANT=[720,480,360];
+  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:mode==='file'?[]:[(sr&&sr.langs&&sr.langs[0])||'Hindi'],fm:{},pickL:'',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
+  const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add language · S'+sNo+' EP '+nNo),b=$('.mbody',m);
   const feedOk=()=>mode==='file'||U.cats.some(c=>FEEDCATS.includes(c));
-  const ok=()=>U.title.trim()&&U.cover&&U.file&&U.fq&&feedOk();
+  const ok=()=>U.title.trim()&&U.cover&&U.langs.length&&U.langs.every(l=>U.fm[l]&&U.fm[l].fq)&&feedOk();
+  const total=()=>U.langs.reduce((a,l)=>a+(U.fm[l]?U.fm[l].file.size:0),0);
   const draw=()=>{
     b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
-    <label class="fl">Language</label><div class="qrow">${LANGS.map(l=>`<button class="qc ${U.lang===l?'on':''}" data-u="lang" data-v="${l}">${l}</button>`).join('')}</div>
-    <label class="fl">Video file</label>
-    <button class="drop" data-u="pick">${U.file?esc(U.file.name):'Choose video file'}</button>
-    ${U.file?`<div class="orig">Original quality: <b>${U.fq?U.fq+'p':'could not be read, choose it below'}</b> · ${mb(U.file.size)} MB</div>`:'<div class="orig">The original quality is detected automatically.</div>'}
-    ${U.file&&!U.fq?`<div class="qrow" style="margin-top:8px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-v="${q}">${q}p</button>`).join('')}</div>`:''}
-    <label class="fl">Qualities for viewers</label>
-    <div class="qrow">${[1080,720,480,360].map(q=>{const locked=q===U.fq,big=U.fq&&q>U.fq,on=locked||U.want.includes(q);return`<button class="qc ${on?'on':''}" ${big?'disabled':''} data-u="${locked?'none':'qw'}" data-v="${q}">${q}p${locked?' · original':''}</button>`}).join('')}</div>
-    <div class="orig">Upload just your 1080p file. The lower qualities you keep ticked here are made automatically in the cloud, and viewers switch between them like on YouTube.</div>
+    <label class="fl">Languages</label><div class="qrow">${LANGS.map(l=>`<button class="qc ${U.langs.includes(l)?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}</div>
+    <div class="orig">Pick every language this video has. Each language needs its own video file. Upload in 1080p and 720p, 480p and 360p are made automatically, like on YouTube.</div>
+    ${U.langs.map(l=>{const f=U.fm[l];return`<div class="frow"><div><b>${l}</b><small>${f?(f.fq?f.fq+'p':'quality unknown')+' · '+mb(f.file.size)+' MB · '+esc(f.file.name):'No file chosen yet'}</small></div><button data-u="pf" data-l="${l}">${f?'Change':'Choose file'}</button></div>${f&&!f.fq?`<div class="qrow" style="margin:-2px 0 10px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-l="${l}" data-v="${q}">${q}p</button>`).join('')}</div>`:''}`}).join('')}
+    ${U.langs.length?`<div class="orig">Total to upload: ${mb(total())} MB</div>`:''}
     ${mode==='file'?'':`<label class="fl">Categories</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
     <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div></div>`}
     <div class="prog" style="display:${U.busy?'block':'none'}"><div class="bar"><i style="width:${U.pct}%"></i></div><small class="sub" id="upm" style="padding:0">${esc(U.msg)}</small></div>
@@ -813,47 +824,48 @@ function uploadForm(mode,sr,ctx){
   draw();
   m.addEventListener('input',e=>{if(e.target.id==='uft'){U.title=e.target.value;const g=$('[data-u=go]',m);if(g)g.disabled=!(ok()&&!U.busy)}});
   $('#vf',m).addEventListener('change',async e=>{
-    const f=e.target.files[0];e.target.value='';if(!f)return;
-    const d=await detectQ(f);U.file=f;U.fq=d.q;U.want=[720,480,360].filter(q=>d.q&&q<d.q);draw();
+    const f=e.target.files[0];e.target.value='';if(!f||!U.pickL)return;
+    const d=await detectQ(f);U.fm[U.pickL]={file:f,fq:d.q};U.pickL='';draw();
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   async function run(){
     U.busy=true;U.err='';draw();
     try{
-      const t0=Date.now(),all=U.file.size;
-      const r=await uploadFile(U.file,loaded=>{const sp=loaded/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,loaded/all*100),`Uploading ${U.fq}p · ${mb(loaded)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
-      prog(99,'Saving…');await commit({[U.fq]:{name:r.name,size:U.file.size}});
+      const all=total();let done=0;const files={};const t0=Date.now();
+      for(const l of U.langs){
+        const f=U.fm[l];
+        const r=await uploadFile(f.file,loaded=>{const x=done+loaded,sp=x/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,x/all*100),`Uploading ${l} ${f.fq}p · ${mb(x)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
+        files[l]={[f.fq]:{name:r.name,size:f.file.size}};done+=f.file.size;
+      }
+      prog(99,'Saving…');await commit(files);
     }catch(e){U.busy=false;U.err=(e&&e.error)||(e&&e.offline?'Connection lost. Tap Upload to continue where it stopped.':'Upload failed. Tap Upload to continue.');draw()}
   }
   async function commit(files){
-    const want=[...new Set([...U.want,U.fq])].sort((a,c)=>c-a);
     let data,id=sr&&sr.id,cv=null;
-    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[U.lang],cats:U.cats,seasons:[{eps:[{n:1,files:{[U.lang]:files},want}],done:U.final}]};cv=U.cover}
+    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[...U.langs],cats:U.cats,seasons:[{eps:[{n:1,files,want:WANT}],done:U.final}]};cv=U.cover}
     else{
       const fresh=(await api('/api/catalog')).find(x=>x.id===id)||sr;data=clone(fresh);['id','ts','views','cover'].forEach(k=>delete data[k]);
-      if(mode==='ep'){const se=data.seasons[sNo-1];se.eps.push({n:nNo,files:{[U.lang]:files},want});if(U.final)se.done=true}
-      else if(mode==='season')data.seasons.push({eps:[{n:1,files:{[U.lang]:files},want}],done:U.final});
-      else{const e=data.seasons[sNo-1].eps.find(x=>x.n===nNo);e.files=e.files||{};e.files[U.lang]=Object.assign(e.files[U.lang]||{},files);e.want=[...new Set([...(e.want||[]),...want])].sort((a,c)=>c-a)}
-      data.langs=data.langs||[];if(!data.langs.includes(U.lang))data.langs.push(U.lang);
+      if(mode==='ep'){const se=data.seasons[sNo-1];se.eps.push({n:nNo,files,want:WANT});if(U.final)se.done=true}
+      else if(mode==='season')data.seasons.push({eps:[{n:1,files,want:WANT}],done:U.final});
+      else{const e=data.seasons[sNo-1].eps.find(x=>x.n===nNo);e.files=e.files||{};U.langs.forEach(l=>{e.files[l]=Object.assign(e.files[l]||{},files[l])});e.want=WANT}
+      data.langs=data.langs||[];U.langs.forEach(l=>{if(!data.langs.includes(l))data.langs.push(l)});
       if(mode!=='file')data.cats=U.cats;
     }
     const rr=await api('/api/series',{json:{id,data,cover:cv}});const sid=id||rr.id;
     await loadCatalog(true);m.remove();
-    const lower=want.filter(q=>q<U.fq);
-    if(lower.length){
-      try{const er=await api('/api/encode',{json:{sid,s:sNo,n:nNo,lang:U.lang}});toast(er.started?'Uploaded. Making '+lower.map(q=>q+'p').join(', ')+' in the cloud. This takes a while.':'Uploaded. Everyone can watch it now.');await loadCatalog(true)}
-      catch(e){toast('Uploaded. Auto quality is not set up yet.')}
-    }else toast('Uploaded. Everyone can watch it now.');
+    let started=0;
+    for(const l of U.langs){if(U.fm[l].fq>360){try{const er=await api('/api/encode',{json:{sid,s:sNo,n:nNo,lang:l}});if(er.started)started++}catch(e){toast('Uploaded. Auto quality is not set up yet.');return}}}
+    toast(started?'Uploaded. Making 720p, 480p and 360p in the cloud. This takes a while.':'Uploaded. Everyone can watch it now.');
+    if(started)loadCatalog(true);
   }
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u;
     if(u==='x'){if(U.busy&&!confirm('Upload is running. Close anyway? You can resume later.'))return;m.remove();return}
-    if(U.busy||u==='none')return;
-    if(u==='pick'){$('#vf',m).multiple=false;$('#vf',m).click()}
-    else if(u==='fq'){U.fq=+t.dataset.v;draw()}
-    else if(u==='qw'){const q=+t.dataset.v;U.want=U.want.includes(q)?U.want.filter(x=>x!==q):[...U.want,q];draw()}
+    if(U.busy)return;
+    if(u==='pf'){U.pickL=t.dataset.l;$('#vf',m).multiple=false;$('#vf',m).click()}
+    else if(u==='fq'){U.fm[t.dataset.l].fq=+t.dataset.v;draw()}
+    else if(u==='lg'){const l=t.dataset.v;if(U.langs.includes(l)){U.langs=U.langs.filter(x=>x!==l);delete U.fm[l]}else U.langs.push(l);draw()}
     else if(u==='pickcover')$('#cf',m).click();
     else if(u==='autocover'){const tt=U.title.trim();if(!tt){toast('Type the title first');return}U.cover=cover(tt,(tt.length*47)%360,(tt.length*91+120)%360,tt.length*13+7);U.coverNew=true;draw()}
-    else if(u==='lang'){U.lang=t.dataset.v;draw()}
     else if(u==='cat'){const v=t.dataset.v;U.cats=U.cats.includes(v)?U.cats.filter(x=>x!==v):[...U.cats,v];draw()}
     else if(u==='tg'){U.final=!U.final;draw()}
     else if(u==='go'&&ok())run()});
@@ -881,7 +893,7 @@ function pui(){
 }
 function showBuf(msg,delay){const st=$('#stage');if(!st)return;clearTimeout(PL.bufT);const go=()=>{const s2=$('#stage');if(!s2)return;s2.classList.add('buffering');const c=$('#ctl');c&&c.classList.add('show');clearTimeout(PL.hideT)};if(delay)PL.bufT=setTimeout(go,delay);else go()}
 function hideBuf(){clearTimeout(PL.bufT);const st=$('#stage');if(!st)return;const was=st.classList.contains('buffering');st.classList.remove('buffering');if(was)showCtl()}
-function showCtl(ms=2000){const c=$('#ctl');if(!c)return;c.classList.add('show');clearTimeout(PL.hideT);const v=V();if(v&&!v.paused)PL.hideT=setTimeout(()=>c.classList.remove('show'),ms)}
+function showCtl(ms=2000){const c=$('#ctl');if(!c)return;c.classList.add('show');barsSync(true);clearTimeout(PL.hideT);const v=V();if(v&&!v.paused&&!(($('#stage')||{}).classList||{contains:()=>false}).contains('buffering'))PL.hideT=setTimeout(()=>{c.classList.remove('show');barsSync(false)},ms)}
 function ctitle(){const s=cur(),t=$('#ctitle');if(t)t.textContent=`${s.title} • EP ${D.n}`;const q=$('#qbtn');if(q)q.textContent=PL.q?PL.q+'p':''}
 async function resolveSrc(){
   const dl=S.downloads.find(x=>x.done&&x.id===D.id&&x.s===D.s&&x.n===D.n&&x.lang===D.lang&&x.q===PL.q);
@@ -924,7 +936,8 @@ function ended(){
   if(S.set.autoNext&&!D.offline&&nx){D.n=nx.n;D.chip=nx.n;const ls=epLangs(nx);if(!ls.includes(D.lang))D.lang=ls[0];loadEp(true);drawDetail();toast('Next: Episode '+D.n)}
   else showCtl();
 }
-function nativeFs(on){try{if(!NATIVE)return;const SO=plug('ScreenOrientation'),SB=plug('StatusBar');if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.hide().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{})}}catch(e){}}
+function nativeFs(on){try{if(!NATIVE)return;const SO=plug('ScreenOrientation'),SB=plug('StatusBar');if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}}
+function barsSync(visible){if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;try{const SB=plug('StatusBar');(visible?SB.show():SB.hide()).catch(()=>{})}catch(e){}}
 function applyRatio(){
   const pl=$('#pl'),v=V(),st=$('#stage');if(!pl||!v||!st)return;
   if(!pl.classList.contains('fs')){v.style.cssText='';return}
@@ -961,7 +974,7 @@ function bindPlayer(){
   st.addEventListener('pointerup',e=>{if(e.target.closest('.ctl button,.seek'))return;clearTimeout(ht);if(held){up();return}
     const r=st.getBoundingClientRect(),rot=$('#pl').classList.contains('rot'),x=rot?(e.clientY-r.top)/r.height:(e.clientX-r.left)/r.width,now=Date.now();
     if(now-last<300){clearTimeout(tt);last=0;if(x<.4)skip(-10);else if(x>.6)skip(10);else{const p=V();p.paused?p.play().catch(()=>{}):p.pause()}}
-    else{last=now;tt=setTimeout(()=>{const c=$('#ctl'),p=V();if(c.classList.contains('show')&&p&&!p.paused)c.classList.remove('show');else showCtl()},300)}});
+    else{last=now;tt=setTimeout(()=>{const c=$('#ctl'),p=V();if(c.classList.contains('show')&&p&&!p.paused){c.classList.remove('show');barsSync(false)}else showCtl()},300)}});
   $('#seek').addEventListener('input',e=>{V().currentTime=+e.target.value;showCtl()});
   $('#vol').addEventListener('input',e=>{const x=+e.target.value;V().volume=x;V().muted=x===0;S.set.volume=x;saveSet();const b=$('#volb');if(b)b.innerHTML=ic(x===0?'mute':'vol',20);showCtl()});
 }
@@ -979,7 +992,7 @@ function openDetail(id,o={}){
   const s=o.s||1,n=o.n||(sr.seasons[s-1]&&sr.seasons[s-1].eps[0]&&sr.seasons[s-1].eps[0].n)||1;const ep=epObj(sr,s,n);
   if(!ep||!epLangs(ep).length){toast('This episode has no video yet');return}
   const ls=epLangs(ep);
-  D={id,s,n,lang:o.lang&&ls.includes(o.lang)?o.lang:ls[0],tab:'for',chip:n,offline:!!o.localUrl,q:o.q||null,localUrl:o.localUrl||''};
+  D={id,s,n,lang:o.lang&&ls.includes(o.lang)?o.lang:(S.lang&&ls.includes(S.lang)?S.lang:ls[0]),tab:'for',chip:n,offline:!!o.localUrl,q:o.q||null,localUrl:o.localUrl||''};
   const d=el(`<div class="detail ${D.offline?'off':''}" id="detail"><div class="player" id="pl"></div><div class="dscroll" id="dsc"></div></div>`);
   if(o.from){try{const r=o.from.getBoundingClientRect(),a=app.getBoundingClientRect();d.style.setProperty('--ox',(r.left-a.left+r.width/2)+'px');d.style.setProperty('--oy',(r.top-a.top+r.height/2)+'px')}catch(e){}}
   app.appendChild(d);$('#pl').innerHTML=playerHTML();bindPlayer();drawDetail();PL.resume=o.resume||0;loadEp();if(o.auto&&o.resume)toast('Continuing from '+fmt(o.resume));
@@ -1112,12 +1125,21 @@ function handleBack(){
   if(D){closeDetail();return true}
   if(!TOKEN)return'exit';
   if(S.tab!=='home'){go('home');return true}
-  if(Date.now()-exitArm<2500)return'exit';
-  exitArm=Date.now();toast('Press back once more to exit');return true;
+  if(Date.now()-exitArm<2000)return'exit';
+  exitArm=Date.now();toast('Press back again to exit');return true;
 }
 let leaving=false;
-if(NATIVE){const AP=plug('App');if(AP&&AP.addListener)AP.addListener('backButton',()=>{if(handleBack()==='exit')AP.exitApp()})}
-else{history.replaceState({a:0},'');history.pushState({a:1},'');addEventListener('popstate',()=>{if(leaving)return;if(handleBack()==='exit'){leaving=true;history.back()}else history.pushState({a:1},'')})}
+if(NATIVE){const AP=plug('App');if(AP&&AP.addListener)AP.addListener('backButton',()=>{let r;try{r=handleBack()}catch(e){r='exit'}if(r==='exit')AP.exitApp()})}
+else{
+  history.replaceState({a:0},'');
+  let armed=false;
+  const arm=()=>{if(armed||leaving)return;armed=true;history.pushState({a:1},'')};
+  ['click','touchend','keydown'].forEach(ev=>addEventListener(ev,arm,{passive:true}));
+  addEventListener('popstate',()=>{
+    if(leaving||!armed)return;armed=false;
+    if(handleBack()==='exit'){leaving=true;history.back()}else{armed=true;history.pushState({a:1},'')}
+  });
+}
 /* ---------- actions ---------- */
 let lpT=0;const lp={t:0,x:0,y:0};
 document.addEventListener('pointerdown',e=>{
@@ -1182,6 +1204,7 @@ const ACT={
   dstorage:async()=>{try{toast('Checking…');const r=await api('/api/storage');sheet('Server storage',[{t:'Videos stored',s:(r.bytes/1073741824).toFixed(2)+' GB · '+r.files+' files'},{t:'Unfinished uploads',s:r.unfinished+' · '+mb(r.unfinishedBytes||0)+' MB'},{t:'Free limit',s:'10 GB (Backblaze)'}],()=>{})}catch(e){toast((e&&e.error)||'Could not check')}},
   dclean:()=>sheet('Cancel unfinished uploads?',[{t:'Cancel them now',s:'Do not do this while an upload is running',v:1},{t:'Keep',v:0}],async it=>{if(!it.v)return;try{const r=await api('/api/upload/cleanup',{method:'POST'});toast('Cancelled '+r.cancelled+' unfinished upload'+(r.cancelled===1?'':'s'))}catch(e){toast((e&&e.error)||'Failed')}}),
   hist:historyModal,
+  notif:async()=>{if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
   apk:()=>{location.href=APK_FILE+'?v='+Date.now()},
   'up-new':()=>uploadForm('new'),
   'up-next':nextSeason
