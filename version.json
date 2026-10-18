@@ -1,5 +1,5 @@
 {
-  "version": "2.7",
-  "notes": "Videos now come in 1080p and 720p, and Auto quality adjusts to your internet speed.",
+  "version": "2.8",
+  "notes": "Streamly has a new logo, smoother video start and a more reliable back button.",
   "force": false
 }
