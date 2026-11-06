@@ -4,13 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Streamly</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0e0a16">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Streamly">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -292,16 +285,64 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .stage .art{filter:blur(30px) saturate(1.15) brightness(.4)}
 .stage .poster{position:absolute;left:50%;top:0;height:100%;width:auto;max-width:100%;transform:translateX(-50%);object-fit:contain;pointer-events:none}
 .stage.vready .poster{display:none}
+
+/* ---- v3.0 ---- */
+.hsb{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:var(--sf2);color:var(--tx);margin-left:8px;flex:none}
+.hrow{gap:16px}
+.hue{-webkit-appearance:none;appearance:none;flex:1;max-width:58%;height:12px;border-radius:99px;outline:0;background:linear-gradient(90deg,hsl(0,85%,60%),hsl(60,85%,55%),hsl(120,70%,50%),hsl(180,80%,50%),hsl(240,85%,62%),hsl(300,80%,60%),hsl(360,85%,60%))}
+.hue::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid rgba(0,0,0,.35);box-shadow:0 2px 10px rgba(0,0,0,.5)}
+.hue::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid rgba(0,0,0,.35)}
+.amb::before,.amb::after{display:none}
+.amb .pl{position:absolute;left:0;right:0;top:0;height:100%;transform:translateY(calc(var(--sy,0)*-.55px));will-change:transform;filter:saturate(1.25) brightness(1.12)}
+.amb .o{position:absolute;display:block;border-radius:50%;filter:blur(20px)}
+.amb .o1{left:50%;top:calc(min(96vw,500px)*-.38);width:min(96vw,500px);height:min(96vw,500px);margin-left:calc(min(96vw,500px)/-2);background:radial-gradient(circle,rgba(var(--acc-rgb),1) 0,rgba(var(--acc-rgb),.68) 36%,rgba(var(--acc-rgb),.24) 62%,transparent 72%);opacity:calc(.55 + var(--glow)*.45);animation:orbs 6s ease-in-out infinite alternate}
+.amb .o2{right:-26vw;top:95vh;width:min(72vw,400px);height:min(72vw,400px);background:radial-gradient(circle,rgba(var(--acc-rgb),.85) 0,rgba(var(--acc-rgb),.3) 50%,transparent 70%);opacity:calc(.35 + var(--glow)*.4);animation:orbs 8s ease-in-out infinite alternate}
+.amb .o3{left:-28vw;top:175vh;width:min(72vw,400px);height:min(72vw,400px);background:radial-gradient(circle,rgba(var(--acc-rgb),.8) 0,rgba(var(--acc-rgb),.28) 50%,transparent 70%);opacity:calc(.3 + var(--glow)*.4);animation:orbs 7s ease-in-out infinite alternate-reverse}
+@keyframes orbs{to{transform:scale(1.1)}}
+.msg.new{animation:msgin .34s cubic-bezier(.2,1.25,.4,1)}
+@keyframes msgin{from{opacity:0;transform:translateY(16px) scale(.9)}}
+.msg.new.me .bub{transform-origin:100% 100%}.msg.new:not(.me) .bub{transform-origin:0 100%}
+.cin input{border-radius:99px;padding:12px 18px;background:var(--sf);border:1px solid var(--line);color:var(--tx);caret-color:var(--acc);outline:0;transition:border-color .2s,box-shadow .2s}
+.cin input:focus{border-color:rgba(var(--acc-rgb),.7);box-shadow:0 0 0 3px rgba(var(--acc-rgb),.18)}
+.cin .cta{border-radius:50%;width:46px;height:46px;padding:0!important;min-width:0!important;display:grid;place-items:center;flex:none}
+.cin .cta.sent{animation:sendp .38s}@keyframes sendp{45%{transform:scale(.8) rotate(-20deg)}}
+::placeholder{color:var(--tx2);opacity:.8}::selection{background:rgba(var(--acc-rgb),.4)}
+.dlgw{position:absolute;inset:0;z-index:600;display:grid;place-items:center;padding:20px}
+.dlgb{position:absolute;inset:0;background:rgba(5,3,12,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:fd .25s}
+.dlg{position:relative;width:min(360px,100%);background:var(--sf);border:1px solid var(--line);border-radius:26px;padding:26px 22px 20px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 60px rgba(var(--acc-rgb),.25);animation:dlgin .38s cubic-bezier(.2,1.2,.35,1)}
+@keyframes dlgin{from{opacity:0;transform:translateY(24px) scale(.88)}}
+.dlg h3{margin:14px 0 4px;font-size:1.25rem}.dlg p{margin:0 0 16px;color:var(--tx2);font-size:.88rem}
+.dlgav{width:92px;height:92px;border-radius:50%;margin:0 auto;background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 50%,#fff));display:grid;place-items:center;font-size:2.2rem;font-weight:700;color:#fff;position:relative;cursor:pointer;box-shadow:0 10px 30px rgba(var(--acc-rgb),.45)}
+.dlgav img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.dlgav i{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--bg);border:2px solid var(--acc);display:grid;place-items:center;color:#fff}
+.dlg .inp{text-align:center;font-size:1.05rem;border-radius:14px}
+.lbl{margin:14px 0 2px;font-size:.78rem;color:var(--tx2);letter-spacing:.02em}.langrow button{min-width:auto;padding:0 16px}
+
+/* ---- fullscreen: options slide in from the right ---- */
+.player .shw{flex-direction:row;justify-content:flex-end;align-items:stretch;z-index:700}
+.player .shw .shb{background:linear-gradient(270deg,rgba(0,0,0,.6),rgba(0,0,0,0) 72%)}
+.player .shw .sh{width:clamp(200px,30%,310px);max-width:none;max-height:none;height:calc(100% - 20px);margin:10px 10px 10px 0;padding:16px 8px;border-radius:24px;background:linear-gradient(160deg,rgba(var(--acc-rgb),.32),rgba(10,8,18,.8) 42%);border:1px solid rgba(255,255,255,.13);-webkit-backdrop-filter:blur(22px) saturate(1.3);backdrop-filter:blur(22px) saturate(1.3);box-shadow:-18px 0 50px rgba(0,0,0,.45),0 0 40px rgba(var(--acc-rgb),.25);display:flex;flex-direction:column;justify-content:center;overflow-y:auto;color:#fff;animation:slr .32s cubic-bezier(.2,.9,.3,1)}
+.player .sh h4{display:block;margin:0 14px 10px;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:600}
+.player .sh .grab,.player .sh>.sub{display:none}
+.player .shi{border:0;padding:13px 16px;margin:2px 0;border-radius:14px;font-size:1.02rem;width:100%;text-align:left;display:flex;align-items:center;gap:8px;color:#fff;transition:background .18s,transform .18s}
+.player .shi:active{transform:scale(.97)}
+.player .shi.on{background:rgba(var(--acc-rgb),.42);box-shadow:inset 3px 0 0 var(--acc);font-weight:600}
+.player .shi span{flex:1}.player .shi em{font-size:.72rem;color:rgba(255,255,255,.62)}
+.player .shw.out .sh{transform:translateX(34px);opacity:0}.player .shw.out .shb{opacity:0}
+@keyframes slr{from{transform:translateX(44px);opacity:0}}
+.player .shw .sh.epsh{width:clamp(290px,46%,430px);justify-content:flex-start;min-height:0}
+.chip-s{align-items:center}
+.feeds{gap:14px}.feeds button{font-size:.93rem}
+.qbtn{white-space:nowrap}
 </style>
 </head>
 <body>
 <div id="app">
-  <div class="amb idle" id="amb"></div>
+  <div class="amb idle" id="amb"><div class="pl"><i class="o o1"></i><i class="o o2"></i><i class="o o3"></i></div></div>
   <div class="mb l"></div><div class="mb r"></div>
   <div id="root"></div>
   <div id="splash"></div>
 </div>
-<script>window.__SW=1</script>
 <script>
 (()=>{
 "use strict";
@@ -316,6 +357,7 @@ const plug=n=>{try{return window.Capacitor.registerPlugin(n)}catch(e){return nul
 const BAKED_API='';
 let API=String(BAKED_API||window.STREAMLY_API||store.get('strm.api','')).replace(/\/+$/,'');
 let TOKEN=store.get('strm.tok','');
+const DEVICE=store.get('strm.dev',null)||(()=>{const d=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Math.random()).slice(2)+Date.now();store.set('strm.dev',d);return d})();
 const CONFIG_URL='https://johnmarstonxz.github.io/Streamly-Web/config.js';
 function loadConfig(){
   return new Promise(res=>{
@@ -344,17 +386,19 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='2.8';
+const APP_VERSION='3.0';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
-const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
-const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movie'};
+const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies',fandub:'Fan Dub'};
+const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies',fandub:'Fan Dub'};
+const inCat=(s,c)=>(s.cats||[]).includes(c)||(c==='Movies'&&(s.cats||[]).includes('Movie'));
+const normCats=a=>[...new Set((a||[]).map(c=>c==='Movie'?'Movies':c).filter(c=>Object.values(FEEDCAT).includes(c)))];
 const FEEDCATS=Object.values(FEEDCAT);
 const RATIOS=[['16:9','16:9','Default'],['4:3','4:3',''],['21:9','21:9','Cinema'],['orig','Original','Video\'s own shape'],['fill','Fill screen','Crops the edges']];
 const ratioLabel=r=>(RATIOS.find(x=>x[0]===r)||RATIOS[0])[1];
-const GENRES=['Adventure','Reincarnated','Action','Fantasy'];
-const LANGS=['Hindi','English','Japanese','Tamil','Telugu','Malayalam','Urdu'];
+const GENRES=[];
+const LANGS=['Hindi','English','Japanese'];
 const FLANGS=['Hindi','English','Japanese'];
-const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:2,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9',volume:1,subLang:''};
+const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:0,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9',volume:1,subLang:'',hue:265};
 const S={kind:null,mode:'customer',tab:'home',feed:'foryou',q:'',set:Object.assign({},DEF,store.get('strm.set',{})),series:store.get('strm.cat5',[]),playlist:store.get('strm.pl',[]),downloads:store.get('strm.dl',[]),unread:0};
 const saveSet=()=>store.set('strm.set',S.set);
 S.lang=store.get('strm.lang','');
@@ -366,6 +410,10 @@ const mb=b=>{const m=b/1048576;return m>=100?String(Math.round(m)):m.toFixed(1)}
 const ser=id=>S.series.find(x=>x.id===id);
 const epObj=(s,si,n)=>{const se=s&&s.seasons[si-1];return se&&se.eps.find(e=>e.n===n)};
 const epLangs=ep=>Object.keys((ep&&ep.files)||{});
+const LORD=l=>{const i=LANGS.indexOf(l);return i<0?99:i};
+const seasonLangs=(s,si)=>{const set=new Set();((s.seasons[si-1]||{eps:[]}).eps).forEach(e=>{epLangs(e).forEach(l=>set.add(l));(e.srcs||[]).forEach(sc=>sc.tracks.forEach(t=>set.add(t.lang)))});return[...set].sort((a,b)=>LORD(a)-LORD(b))};
+const labelOf=(s,l,ep)=>{if(ep&&ep.labels&&ep.labels[l])return ep.labels[l];for(const se of s.seasons)for(const e of se.eps)if(e.labels&&e.labels[l])return e.labels[l];return l};
+const epHas=(e,l)=>epLangs(e).includes(l)||(e.srcs||[]).some(sc=>sc.tracks.some(t=>t.lang===l));
 const epQs=(ep,l)=>Object.keys((ep&&ep.files&&ep.files[l])||{}).map(Number).sort((a,b)=>b-a);
 const clone=o=>JSON.parse(JSON.stringify(o));
 function collectNames(o,out){if(!o)return;if(typeof o==='string'){out.push(o);return}if(typeof o==='object'){if(typeof o.name==='string'&&o.name.indexOf('v/')===0){out.push(o.name);return}Object.values(o).forEach(v=>collectNames(v,out))}}
@@ -383,11 +431,19 @@ function ask(title,value,cb,max=24){
   app.appendChild(w);const inp=$('input',w);setTimeout(()=>inp.focus(),250);const close=()=>w.remove();
   w.addEventListener('click',e=>{if(e.target.classList.contains('shb'))close();if(e.target.closest('.cta')){const v=inp.value.trim();if(v){close();cb(v)}}});
 }
-function modal(title){const m=el(`<div class="modal"><div class="mh"><button class="ib" data-u="x" aria-label="Close">${ic('x',22)}</button><b>${esc(title)}</b></div><div class="mbody"></div><input type="file" accept="video/*" id="vf" hidden><input type="file" accept="image/*" id="cf" hidden></div>`);app.appendChild(m);return m}
+function modal(title){const m=el(`<div class="modal"><div class="mh"><button class="ib" data-u="x" aria-label="Close">${ic('x',22)}</button><b>${esc(title)}</b></div><div class="mbody"></div><input type="file" accept="video/*,.mkv,.mp4,.m4v,.mov,.webm" id="vf" hidden><input type="file" accept="image/*" id="cf" hidden></div>`);app.appendChild(m);return m}
 function popAnim(e,c='pa'){if(!e)return;e.classList.remove(c);void e.offsetWidth;e.classList.add(c)}
 /* settings */
+function hsl2rgb(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));return[255*f(0),255*f(8),255*f(4)].map(Math.round)}
+const CUSTOM_VARS=['--bg','--sf','--sf2','--hdr','--nav','--tx2'];
 function applySettings(){
-  const s=S.set,h=s.accent;app.style.setProperty('--acc',h);app.style.setProperty('--acc-rgb',[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)).join(','));
+  const s=S.set;let acc=s.accent,rgb;
+  if(s.theme==='custom'){
+    const hu=(((+s.hue)||265)%360+360)%360,c=hsl2rgb(hu,85,62),P=(k,v)=>app.style.setProperty(k,v);
+    acc='#'+c.map(x=>x.toString(16).padStart(2,'0')).join('');rgb=c.join(',');
+    P('--bg',`hsl(${hu} 55% 6%)`);P('--sf',`hsl(${hu} 40% 12%)`);P('--sf2',`hsl(${hu} 36% 19%)`);P('--hdr',`hsla(${hu},55%,6%,.8)`);P('--nav',`hsla(${hu},50%,8%,.95)`);P('--tx2',`hsl(${hu} 18% 72%)`);
+  }else{CUSTOM_VARS.forEach(k=>app.style.removeProperty(k));rgb=[1,3,5].map(i=>parseInt(acc.slice(i,i+2),16)).join(',')}
+  app.style.setProperty('--acc',acc);app.style.setProperty('--acc-rgb',rgb);
   app.dataset.theme=s.theme;app.classList.toggle('noanim',!s.anim);document.documentElement.style.fontSize=(16*s.textSize)+'px';
 }
 /* ---------- server ---------- */
@@ -398,6 +454,7 @@ async function api(path,o={}){
   let j={};try{j=await r.json()}catch(e){}
   if(!r.ok){
     if(r.status===403&&j.error==='deactivated'&&!o.noauth)kick();
+    else if(r.status===403&&j.error==='replaced'&&!o.noauth)kick('replaced');
     else if(r.status===401&&TOKEN&&!o.noauth){wipe();renderGate('Please enter your key again.')}
     throw{status:r.status,error:j.error||'error'};
   }
@@ -405,11 +462,12 @@ async function api(path,o={}){
 }
 function wipe(){TOKEN='';store.del('strm.tok');store.del('strm.unlock');S.kind=null}
 let kicked=false;
-function kick(){
-  if(kicked)return;kicked=true;closeDetail(true);$$('.modal,.shw').forEach(n=>n.remove());
-  const w=el(`<div class="shw lock" style="z-index:1000;justify-content:center;align-items:center"><div class="shb" style="background:rgba(0,0,0,.85)"></div><div class="sh" style="border-radius:22px;max-width:86%;text-align:center;padding:26px 20px;animation:zi .3s"><div style="width:56px;height:56px;border-radius:50%;background:rgba(255,90,110,.16);color:#ff5a6e;display:grid;place-items:center;margin:0 auto 12px">${ic('x',28,2.2)}</div><h4 style="font-size:1.15rem;margin:0 0 6px">Developer deactivated this access key</h4><p class="sub" style="padding:0 0 18px;font-size:.9rem">You can't use Streamly with this key anymore. Contact the developer for a new key.</p><button class="cta" style="width:100%">Close app</button></div></div>`);
+function kick(why){
+  if(kicked)return;kicked=true;closeDetail(true);$$('.modal,.shw,.dlgw').forEach(n=>n.remove());
+  const rp=why==='replaced';
+  const w=el(`<div class="shw lock" style="z-index:1000;justify-content:center;align-items:center"><div class="shb" style="background:rgba(0,0,0,.85)"></div><div class="sh" style="border-radius:22px;max-width:86%;text-align:center;padding:26px 20px;animation:zi .3s"><div style="width:56px;height:56px;border-radius:50%;background:rgba(255,90,110,.16);color:#ff5a6e;display:grid;place-items:center;margin:0 auto 12px">${ic('x',28,2.2)}</div><h4 style="font-size:1.15rem;margin:0 0 6px">${rp?'Signed out on this device':'Developer deactivated this access key'}</h4><p class="sub" style="padding:0 0 18px;font-size:.9rem">${rp?'This access key was just used to sign in on another device. Only one device can use a key at a time.':"You can't use Streamly with this key anymore. Contact the developer for a new key."}</p><button class="cta" style="width:100%">${rp?'Sign in again':'Close app'}</button></div></div>`);
   app.appendChild(w);
-  $('.cta',w).onclick=()=>{w.remove();kicked=false;wipe();renderGate();const AP=NATIVE&&plug('App');if(AP&&AP.exitApp)AP.exitApp()};
+  $('.cta',w).onclick=()=>{w.remove();kicked=false;wipe();renderGate();if(!rp){const AP=NATIVE&&plug('App');if(AP&&AP.exitApp)AP.exitApp()}};
 }
 async function syncProfile(){try{const b={name:S.set.name};if(S.set.photo)b.avatar=S.set.photo;await api('/api/profile',{json:b})}catch(e){}}
 let catSig='';
@@ -457,13 +515,13 @@ function startBg(){
 const amb=$('#amb');let vel=0,lastY=0,lastT=performance.now(),idleT,raf=0,glowCur=.2,mbCur=0;
 function wake(){amb.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>amb.classList.add('idle'),1600)}
 function loop(){
-  vel*=.9;const lv=[0,3,6,10][S.set.mblur]||0;
+  vel*=.9;const lv=0;
   const g=S.set.glow?(.22+Math.min(1,vel/28)*.78):.45;glowCur+=(g-glowCur)*.15;mbCur+=(Math.min(1,vel/38)-mbCur)*.25;
   app.style.setProperty('--glow',glowCur.toFixed(3));app.style.setProperty('--mbpx',(mbCur*lv).toFixed(2)+'px');app.style.setProperty('--mbo',lv?Math.min(1,mbCur*2).toFixed(2):0);
   if(vel>.05||Math.abs(g-glowCur)>.005||mbCur>.01)raf=requestAnimationFrame(loop);else raf=0;
 }
 function onScroll(e){
-  const c=e.target,now=performance.now(),y=c.scrollTop;
+  const c=e.target,now=performance.now(),y=c.scrollTop;app.style.setProperty('--sy',y);
   const sf=$('.sfix');if(sf){const k=Math.min(y,48);sf.style.transform=`translateY(${-k}px)`;sf.classList.toggle('pin',k>=48)}
   const v=Math.abs(y-lastY)/Math.max(8,now-lastT)*16;vel=Math.max(vel,v);lastY=y;lastT=now;wake();if(!raf)raf=requestAnimationFrame(loop);
 }
@@ -484,19 +542,44 @@ function renderGate(msg){
     if(!API){const sv=($('#srv').value||'').trim().replace(/\/+$/,'');if(!/^https:\/\/.+/.test(sv)){err.textContent='Enter the server address first.';return}API=sv;store.set('strm.api',sv)}
     err.textContent='Checking…';
     try{
-      const r=await api('/api/login',{json:{key:v},noauth:true});
+      const r=await api('/api/login',{json:{key:v,device:DEVICE},noauth:true});
       TOKEN=r.token;store.set('strm.tok',TOKEN);store.set('strm.unlock',{kind:r.kind,mask:r.mask,tag:r.tag||''});S.kind=r.kind;S.tag=r.tag||'';S.mode=r.kind==='dev'?store.get('strm.mode','dev'):'customer';
       syncProfile();renderMain();startBg();askName();
     }catch(e){
       if(e.offline)err.textContent='Cannot reach the server. Check the address and your internet.';
       else if(e.error==='deactivated')err.textContent='This key was deactivated by the developer.';
+      else if(e.error==='in_use')err.textContent='This access key is currently active on another device. Please log out there first (Me, then Remove key and lock app), then sign in here.';
       else if(e.error==='invalid'){fails++;err.textContent='Invalid key. Check it and try again.';inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake');if(fails>=5){lockUntil=Date.now()+30000;fails=0}}
       else err.textContent='Something went wrong: '+(e.error||'try again');
     }
   };
   $('#unlock').onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go()};
 }
-function askName(){if(store.get('strm.named',false))return;setTimeout(()=>ask('Choose your display name',S.set.name==='Guest'?'':S.set.name,v=>{S.set.name=v;saveSet();store.set('strm.named',true);syncProfile();if(S.tab==='me')drawMe()}),900)}
+const daysLeft=k=>Math.max(0,Math.ceil((store.get(k,0)+7*864e5-Date.now())/864e5));
+function nameDialog(first){
+  $$('.dlgw').forEach(n=>n.remove());
+  const w=el(`<div class="dlgw ${first?'first':''}"><div class="dlgb"></div><div class="dlg"><div class="dlgav" id="dav"></div><h3>${first?'Add your name':'Edit profile'}</h3><p>${first?'Choose the name and photo other people will see in chats and comments.':'You can change your name and your photo once every 7 days.'}</p><input class="inp" id="dnm" maxlength="24" placeholder="Your name" value="${esc(S.set.name==='Guest'?'':S.set.name)}" autocomplete="off"><button class="cta" id="dsv" style="width:100%;margin-top:14px">Save</button>${first?'':'<button class="btn2" id="dcx" style="width:100%;margin-top:8px">Cancel</button>'}<input type="file" id="dph" accept="image/*" hidden></div></div>`);
+  app.appendChild(w);
+  let photo=S.set.photo,changedPhoto=false;
+  const av=()=>{const nm=($('#dnm',w).value||S.set.name||'?').trim();$('#dav',w).innerHTML=photo?`<img src="${photo}" alt="">`:`<span>${esc((nm[0]||'?').toUpperCase())}</span><i>${ic('plus',16)}</i>`};
+  av();$('#dnm',w).addEventListener('input',()=>{if(!photo)av()});
+  $('#dav',w).onclick=()=>$('#dph',w).click();
+  $('#dph',w).onchange=e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=120;const x=c.getContext('2d');const r=Math.max(120/img.width,120/img.height);x.drawImage(img,(120-img.width*r)/2,(120-img.height*r)/2,img.width*r,img.height*r);photo=c.toDataURL('image/jpeg',.8);changedPhoto=true;av()};img.src=URL.createObjectURL(f)};
+  const cx=$('#dcx',w);if(cx)cx.onclick=()=>w.remove();
+  $('.dlgb',w).onclick=()=>{if(!first)w.remove()};
+  $('#dsv',w).onclick=()=>{
+    const nm=$('#dnm',w).value.trim();if(!nm){toast('Please enter your name');return}
+    const nameChanged=nm!==S.set.name;
+    if(!first){
+      if(nameChanged&&daysLeft('strm.nameAt')>0){toast('You can change your name again in '+daysLeft('strm.nameAt')+' day'+(daysLeft('strm.nameAt')>1?'s':''));return}
+      if(changedPhoto&&daysLeft('strm.photoAt')>0){toast('You can change your photo again in '+daysLeft('strm.photoAt')+' day'+(daysLeft('strm.photoAt')>1?'s':''));return}
+    }
+    if(nameChanged||first){S.set.name=nm;store.set('strm.nameAt',Date.now())}
+    if(changedPhoto){S.set.photo=photo;store.set('strm.photoAt',Date.now())}
+    store.set('strm.named',true);saveSet();syncProfile();w.remove();if(S.tab==='me')drawMe();toast('Profile saved');
+  };
+}
+function askName(){if(store.get('strm.named',false))return;setTimeout(()=>nameDialog(true),700)}
 /* ---------- main shell ---------- */
 function navItems(){const a=[['home','Home','home'],['playlist','Playlist','list'],['downloads','Download','download'],['chats','Chats','chat']];if(S.mode==='dev')a.push(['upload','Upload','upload']);a.push(['me','Me','me']);return a}
 function renderMain(){
@@ -509,7 +592,7 @@ function drawNav(){
   $('#nav').innerHTML=navItems().map(([k,l,i])=>`<button data-act="nav" data-v="${k}" class="${S.tab===k?'on':''}">${ic(i,22)}<span>${l}</span>${(k==='downloads'&&act)||(k==='chats'&&S.unread>0)?'<i class="dot"></i>':''}</button>`).join('');
 }
 function go(t){
-  S.tab=t;MOUNT=null;$('#top').innerHTML='';$('#feedbar').innerHTML='';const c=$('#content');c.classList.toggle('nos',t==='chats');c.scrollTop=0;
+  S.tab=t;MOUNT=null;$('#top').innerHTML='';$('#feedbar').innerHTML='';const c=$('#content');c.classList.toggle('nos',t==='chats');c.scrollTop=0;app.style.setProperty('--sy',0);
   if(t==='chats'){S.unread=0;const st=chatState('chat');store.set('strm.seen',st.after)}
   ({home:drawHome,playlist:drawPlaylist,downloads:drawDownloads,chats:drawChats,me:drawMe,upload:drawUpload})[t]();
   drawNav();popAnim(c,'pa2');
@@ -519,15 +602,15 @@ const newest=s=>s.ts&&Date.now()-s.ts<2592e5?'<span class="nw">NEW</span>':'';
 function feedList(){
   let l=[...S.series];const q=S.q.trim().toLowerCase();
   if(q)return l.filter(s=>s.title.toLowerCase().includes(q)||(s.cats||[]).some(c=>c.toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
-  l=l.filter(s=>(s.cats||[]).includes(FEEDCAT[S.feed]));
-  if(S.lang)l=l.filter(s=>(s.langs||[]).includes(S.lang));
+  l=l.filter(s=>inCat(s,FEEDCAT[S.feed]));
+  if(S.feed==='foryou'&&S.lang)l=l.filter(s=>(s.langs||[]).includes(S.lang));
   if(S.feed==='trending')l.sort((a,b)=>(b.views||0)-(a.views||0)||b.ts-a.ts);else l.sort((a,b)=>b.ts-a.ts);
   return l;
 }
 function drawGrid(){const l=feedList();$('#grid').innerHTML=l.length?l.map(s=>card(s,newest(s))).join(''):`<div class="empty" style="grid-column:1/-1"><b>${S.series.length?(S.q?'No results':'Nothing here yet'):'No videos yet'}</b>${S.series.length?(S.q?'Try another title or genre.':'Videos added to this section will show up here.'):(S.mode==='dev'?'Open the Upload tab and tap Add New.':'New videos from the developer will show up here.')}</div>`}
 function drawHome(){
   $('#feedbar').innerHTML=`<div class="sfix"><div class="search"><div class="sbox">${ic('search',18)}<input id="q" placeholder="Search videos" value="${esc(S.q)}" enterkeyhint="search"></div><button class="sbtn" data-act="dosearch">Search</button></div></div>`;
-  $('#content').innerHTML=`<div class="hdr"><div class="brand">${logo(26)}<span>Streamly</span></div><div class="chip-s">${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span></div></div><div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${langChips()}</div><div class="grid" id="grid"></div>`;
+  $('#content').innerHTML=`<div class="hdr"><div class="brand">${logo(26)}<span>Streamly</span></div><div class="chip-s">${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span><button class="hsb" data-act="hsearch" aria-label="Search">${ic('search',22)}</button></div></div><div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${S.feed==='foryou'?langChips():''}</div><div class="grid" id="grid"></div>`;
   drawGrid();
 }
 function drawPlaylist(){
@@ -598,10 +681,10 @@ async function chatPoll(sc){
   }
   c.msgs.sort((a,b)=>a.id-b.id);return ch;
 }
-function bubble(m){
+function bubble(m,isNew){
   const av=m.avatar?`<img class="av" src="${m.avatar}" alt="">`:`<i class="av">${esc((m.name||'?')[0].toUpperCase())}</i>`;
   const t=new Date(m.ts).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-  return `<div class="msg ${m.mine?'me':''}" data-mid="${m.id}">${m.mine?'':av}<div class="bub ${m.mine?'me':''} ${m.deleted?'del':''}"><small><b>${esc(m.name)}</b>${m.kind==='dev'?'<span class="tag">Dev</span>':''}<span>${t}</span>${m.edited?'<span class="ed">edited</span>':''}</small>${m.deleted?'<span class="dn">Deleted by the user. Only you can see this.</span>':''}<p>${esc(m.text)}</p></div>${m.mine?av:''}</div>`;
+  return `<div class="msg ${m.mine?'me':''} ${isNew?'new':''}" data-mid="${m.id}">${m.mine?'':av}<div class="bub ${m.mine?'me':''} ${m.deleted?'del':''}"><small><b>${esc(m.name)}</b>${m.kind==='dev'?'<span class="tag">Dev</span>':''}<span>${t}</span>${m.edited?'<span class="ed">edited</span>':''}</small>${m.deleted?'<span class="dn">Deleted by the user. Only you can see this.</span>':''}<p>${esc(m.text)}</p></div>${m.mine?av:''}</div>`;
 }
 function mountChat(hostEl,scope,ph,cls){
   MOUNT={host:hostEl,scope};hostEl.className=(cls||'')+' host';
@@ -611,7 +694,9 @@ function mountChat(hostEl,scope,ph,cls){
 function paintMsgs(bottom){
   if(!MOUNT)return;const box=$('.msgs',MOUNT.host);if(!box)return;const c=chatState(MOUNT.scope);
   const near=box.scrollHeight-box.scrollTop-box.clientHeight<90;
-  box.innerHTML=c.msgs.length?c.msgs.map(bubble).join(''):(MOUNT.err?`<div class="empty"><b>Chat is not working</b>${esc(S.srvOld?'The server is out of date. Update the server files and try again.':MOUNT.err)}</div>`:`<div class="empty"><b>No messages yet</b>Be the first to say hi.</div>`);
+  const first=!MOUNT.shown;if(first)MOUNT.shown=new Set();
+  box.innerHTML=c.msgs.length?c.msgs.map(m=>bubble(m,!first&&!MOUNT.shown.has(m.id))).join(''):(MOUNT.err?`<div class="empty"><b>Chat is not working</b>${esc(S.srvOld?'The server is out of date. Update the server files and try again.':MOUNT.err)}</div>`:`<div class="empty"><b>No messages yet</b>Be the first to say hi.</div>`);
+  c.msgs.forEach(m=>MOUNT.shown.add(m.id));
   if(!MOUNT.host.classList.contains('cmb')&&(bottom||near))box.scrollTop=box.scrollHeight;
 }
 async function chatTick(){
@@ -634,22 +719,22 @@ function drawChats(){
   mountChat($('#chathost'),'chat','Message');$('#chathost').style.flex='1';
 }
 /* ---------- me ---------- */
-const SETS=[['Appearance',[['accent','Accent color','color'],['theme','Theme','pick',[['dynamic','Dynamic purple'],['dark','Dark'],['amoled','AMOLED black'],['light','Light']]],['textSize','Text size','pick',[[.92,'Small'],[1,'Default'],[1.1,'Large'],[1.2,'Extra large']]],['anim','Animations','tg'],['mblur','Scroll motion blur','pick',[[0,'Off'],[1,'Low'],[2,'Medium'],[3,'High']]],['glow','Brightness follows scroll','tg']]],
-['Playback',[['defQ','Default quality','pick',[['Auto','Auto'],[360,'360p'],[480,'480p'],[720,'720p'],[1080,'1080p']]],['speed','Default speed','pick',SPEEDS.map(x=>[x,x+'×'])],['holdSpeed','Hold-to-speed','pick',[[1.5,'1.5×'],[2,'2×'],[3,'3×']]],['autoNext','Play next episode automatically','tg']]],
+const SETS=[['Appearance',[['accent','Accent color','color'],['theme','Theme','pick',[['dynamic','Dynamic purple'],['dark','Dark'],['amoled','AMOLED black'],['light','Light'],['custom','Custom']]],['hue','Custom Theme','hue'],['textSize','Text size','pick',[[.92,'Small'],[1,'Default'],[1.1,'Large'],[1.2,'Extra large']]],['anim','Animations','tg'],['glow','Brightness follows scroll','tg']]],
 ['Downloads',[['dlQ','Preferred download quality','pick',[['ask','Ask every time'],[360,'360p'],[480,'480p'],[720,'720p'],[1080,'1080p']]],['_storage','Storage used','info'],['_clrdl','Delete all downloads','act']]],
-['Advanced',[['smooth','Smooth mode (fewer glitches)','tg'],['dataSaver','Data saver','tg'],['hw','Hardware decoding','tg'],['_cache','Clear cache','act'],['_reset','Reset all settings','act'],['_ver','Version','info']]]];
+['Advanced',[['_cache','Clear cache','act'],['_reset','Reset all settings','act'],['_ver','Version','info']]]];
 const ACCS=['#8b5cf6','#6366f1','#ec4899','#14b8a6','#f97316'];
 const setVal=(k,o)=>{const f=(o||[]).find(x=>String(x[0])===String(S.set[k]));return f?f[1]:S.set[k]};
 function drawMe(){
   const st=S.set,un=store.get('strm.unlock',{mask:''});
   const grp=SETS.map(([g,items])=>`<div class="grp"><h4>${g}</h4><div class="box">${items.map(([k,t,ty,o])=>{
     if(ty==='color')return`<div class="row"><span>${t}</span><div class="sws">${ACCS.map(c=>`<button data-act="acc" data-v="${c}" class="${st.accent===c?'on':''}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div></div>`;
+    if(ty==='hue')return`<div class="row hrow"><span>${t}</span><input type="range" class="hue" id="hue" min="0" max="360" value="${st.hue||265}" aria-label="Custom theme colour"></div>`;
     if(ty==='tg')return`<div class="row" data-act="tg" data-k="${k}"><span>${t}</span><i class="sw ${st[k]?'on':''}"></i></div>`;
     if(ty==='pick')return`<div class="row" data-act="pk" data-k="${k}"><span>${t}</span><em>${esc(setVal(k,o))} ›</em></div>`;
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}${(APK_OK&&!isApp())?`<div class="row" data-act="apk"><span>Download Android app</span><em>APK ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}${!isApp()?`<div class="row" data-act="hub"><span>Download the app</span><em>All devices ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -690,7 +775,7 @@ function manage(id){
     else if(u==='edit'){editSeries(sr,draw)}
     else if(u==='delser')confirmDelete('Delete "'+sr.title+'"?','All seasons, episodes and video files',async()=>{await deleteSeries(id);m.remove()})});
 }
-function catChips(sel){return [...GENRES,'For you','Trending','Ongoing','Movie'].map(c=>`<button class="qc ${sel.includes(c)?'on':''}" data-u="cat" data-v="${c}">${c}</button>`).join('')}
+function catChips(sel){return Object.values(FEEDCAT).map(c=>`<button class="qc ${sel.includes(c)?'on':''}" data-u="cat" data-v="${c}">${c}</button>`).join('')}
 function editCats(sr){
   const m=modal('Categories'),b=$('.mbody',m);let sel=[...(sr.cats||[])];
   const draw=()=>{b.innerHTML=`<p class="sub" style="padding:0 0 10px">Pick where this video shows. For you, Trending, Ongoing and Movie are the Home tabs.</p><div class="qrow">${catChips(sel)}</div><button class="cta" style="width:100%;margin-top:22px" data-u="save" ${sel.some(c=>FEEDCATS.includes(c))?'':'disabled'}>Save</button>`};draw();
@@ -701,7 +786,7 @@ function editCats(sr){
 }
 function editSeries(sr,onDone){
   const m=modal('Edit details'),b=$('.mbody',m);
-  const E={title:sr.title,year:String(sr.year||new Date().getFullYear()),cover:sr.cover,coverNew:false,cats:[...(sr.cats||[])],done:sr.seasons.map(s=>!!s.done),busy:false};
+  const E={title:sr.title,year:String(sr.year||new Date().getFullYear()),cover:sr.cover,coverNew:false,cats:normCats(sr.cats),done:sr.seasons.map(s=>!!s.done),busy:false};
   const feedOk=()=>E.cats.some(c=>FEEDCATS.includes(c));
   const can=()=>E.title.trim()&&feedOk()&&!E.busy;
   const draw=()=>{
@@ -803,6 +888,72 @@ async function uploadFile(file,onProgress){
   await api('/api/upload/finish',{json:{fileId:st.fileId,sha1s}});store.del(rk);
   return{name:st.fileName};
 }
+const LANGMAP={hin:'Hindi',hi:'Hindi',eng:'English',en:'English',jpn:'Japanese',ja:'Japanese'};
+function langFromCode(code,name){const c=String(code||'').toLowerCase().split('-')[0];if(LANGMAP[c])return LANGMAP[c];const nm=String(name||'').toLowerCase();for(const l of LANGS)if(nm.includes(l.toLowerCase()))return l;return''}
+const qFromHeight=h=>h>=1000?1080:h>=700?720:h>=450?480:h>0?360:0;
+function ebmlId(u,p){const b=u[p];let len=1,m=0x80;while(len<=4&&!(b&m)){len++;m>>=1}if(len>4)return null;let v=0;for(let i=0;i<len;i++)v=v*256+u[p+i];return{id:v,len}}
+function ebmlSize(u,p){const b=u[p];let len=1,m=0x80;while(len<=8&&!(b&m)){len++;m>>=1}if(len>8)return null;let v=b&(m-1),unk=v===m-1;for(let i=1;i<len;i++){v=v*256+u[p+i];if(u[p+i]!==255)unk=false}return{size:unk?-1:v,len}}
+function ebmlKids(u,start,end,cb){let p=start;while(p+2<end){const a=ebmlId(u,p);if(!a)return;const s=ebmlSize(u,p+a.len);if(!s)return;const ds=p+a.len+s.len;const de=s.size<0?end:Math.min(end,ds+s.size);if(cb(a.id,ds,de)==='stop')return;if(s.size<0)return;p=de}}
+const ebmlUint=(u,a,b)=>{let v=0;for(let i=a;i<b;i++)v=v*256+u[i];return v};
+const ebmlStr=(u,a,b)=>{try{return new TextDecoder().decode(u.subarray(a,b)).replace(/\0+$/,'')}catch(e){return''}};
+function parseMkv(u){
+  const out={audio:[],height:0,width:0};
+  ebmlKids(u,0,u.length,(id,ds,de)=>{
+    if(id!==0x18538067)return;
+    ebmlKids(u,ds,de,(id2,ds2,de2)=>{
+      if(id2===0x1F43B675)return'stop';
+      if(id2!==0x1654AE6B)return;
+      ebmlKids(u,ds2,de2,(id3,ds3,de3)=>{
+        if(id3!==0xAE)return;
+        let type=0,lang='',bcp='',name='',w=0,h=0;
+        ebmlKids(u,ds3,de3,(id4,ds4,de4)=>{
+          if(id4===0x83)type=ebmlUint(u,ds4,de4);
+          else if(id4===0x22B59C)lang=ebmlStr(u,ds4,de4);
+          else if(id4===0x22B59D)bcp=ebmlStr(u,ds4,de4);
+          else if(id4===0x536E)name=ebmlStr(u,ds4,de4);
+          else if(id4===0xE0)ebmlKids(u,ds4,de4,(id5,ds5,de5)=>{if(id5===0xB0)w=ebmlUint(u,ds5,de5);else if(id5===0xBA)h=ebmlUint(u,ds5,de5)});
+        });
+        if(type===2){const code=bcp||lang;out.audio.push({idx:out.audio.length,code:code==='und'?'':code,name})}
+        else if(type===1&&!out.height){out.height=h;out.width=w}
+      });
+      return'stop';
+    });
+    return'stop';
+  });
+  return out;
+}
+function mp4Boxes(u,start,end,cb){let p=start;while(p+8<=end){const dv=new DataView(u.buffer,u.byteOffset+p,Math.min(16,end-p));let size=dv.getUint32(0),hdr=8;const type=String.fromCharCode(u[p+4],u[p+5],u[p+6],u[p+7]);if(size===1&&end-p>=16){size=dv.getUint32(8)*4294967296+dv.getUint32(12);hdr=16}else if(size===0)size=end-p;if(size<8)return;cb(type,p+hdr,Math.min(end,p+size));p+=size}}
+function parseMoov(u){
+  const out={audio:[],height:0,width:0};
+  mp4Boxes(u,0,u.length,(t,ds,de)=>{
+    if(t!=='trak')return;let kind='',lang='',w=0,h=0;
+    mp4Boxes(u,ds,de,(t2,ds2,de2)=>{
+      const dv=new DataView(u.buffer,u.byteOffset);
+      if(t2==='tkhd'){const v=u[ds2];const o=ds2+(v===1?88:76);if(o+8<=de2){w=dv.getUint32(o)>>>16;h=dv.getUint32(o+4)>>>16}}
+      else if(t2==='mdia')mp4Boxes(u,ds2,de2,(t3,ds3,de3)=>{
+        if(t3==='hdlr')kind=String.fromCharCode(u[ds3+8],u[ds3+9],u[ds3+10],u[ds3+11]);
+        else if(t3==='mdhd'){const o=ds3+(u[ds3]===1?32:20);const l=dv.getUint16(o);lang=String.fromCharCode(((l>>10)&31)+96,((l>>5)&31)+96,(l&31)+96)}
+      });
+    });
+    if(kind==='soun')out.audio.push({idx:out.audio.length,code:(lang==='und'||/[^a-z]/.test(lang))?'':lang,name:''});
+    else if(kind==='vide'&&!out.height){out.height=h;out.width=w}
+  });
+  return out;
+}
+async function probeFile(file){
+  const head=new Uint8Array(await file.slice(0,4).arrayBuffer());
+  if(head[0]===0x1A&&head[1]===0x45&&head[2]===0xDF&&head[3]===0xA3)return parseMkv(new Uint8Array(await file.slice(0,Math.min(file.size,4*1048576)).arrayBuffer()));
+  let off=0;
+  for(let i=0;i<64&&off+8<=file.size;i++){
+    const dv=new DataView(await file.slice(off,off+16).arrayBuffer());let size=dv.getUint32(0),hdr=8;
+    const type=String.fromCharCode(dv.getUint8(4),dv.getUint8(5),dv.getUint8(6),dv.getUint8(7));
+    if(size===1){size=dv.getUint32(8)*4294967296+dv.getUint32(12);hdr=16}else if(size===0)size=file.size-off;
+    if(size<8)return null;
+    if(type==='moov'){if(size>48*1048576)return null;return parseMoov(new Uint8Array(await file.slice(off+hdr,off+size).arrayBuffer()))}
+    off+=size;
+  }
+  return null;
+}
 function detectQ(file){
   return new Promise(res=>{const u=URL.createObjectURL(file),v=document.createElement('video');v.preload='metadata';
     v.onloadedmetadata=()=>{const h=v.videoHeight,w=v.videoWidth;URL.revokeObjectURL(u);res({q:h>=1000?1080:h>=700?720:h>=450?480:360,w,h,dur:v.duration})};
@@ -812,20 +963,30 @@ function uploadForm(mode,sr,ctx){
   const sNo=mode==='new'?1:mode==='season'?sr.seasons.length+1:mode==='ep'?sr.seasons.length:ctx.s;
   const nNo=mode==='new'||mode==='season'?1:mode==='ep'?sr.seasons[sr.seasons.length-1].eps.reduce((a,e)=>Math.max(a,e.n),0)+1:ctx.n;
   const WANT=[720];
-  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:mode==='file'?[]:[(sr&&sr.langs&&sr.langs[0])||'Hindi'],fm:{},pickL:'',final:false,cats:sr?[...(sr.cats||[])]:['For you'],busy:false,pct:0,msg:'',err:''};
+  const first=(sr&&sr.langs&&sr.langs.find(l=>LANGS.includes(l)))||'Hindi';
+  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:mode==='file'?[]:[first],fm:{},labels:{},pickL:'',mx:null,final:false,cats:sr?normCats(sr.cats):['For you'],busy:false,pct:0,msg:'',err:''};
   const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add language · S'+sNo+' EP '+nNo),b=$('.mbody',m);
   const feedOk=()=>mode==='file'||U.cats.some(c=>FEEDCATS.includes(c));
-  const ok=()=>U.title.trim()&&U.cover&&U.langs.length&&U.langs.every(l=>U.fm[l]&&U.fm[l].fq)&&feedOk();
-  const total=()=>U.langs.reduce((a,l)=>a+(U.fm[l]?U.fm[l].file.size:0),0);
+  const mxOk=()=>!(U.mx&&U.mx.tracks.some(t=>t.keep&&!t.lang));
+  const ok=()=>U.title.trim()&&U.cover&&U.langs.length&&U.langs.every(l=>U.fm[l]&&U.fm[l].fq)&&mxOk()&&feedOk();
+  const files=()=>[...new Set(U.langs.map(l=>U.fm[l]&&U.fm[l].file).filter(Boolean))];
+  const total=()=>files().reduce((a,f)=>a+f.size,0);
+  const syncMx=()=>{
+    Object.keys(U.fm).forEach(l=>{if(U.fm[l].mx){delete U.fm[l];U.langs=U.langs.filter(x=>x!==l)}});
+    if(!U.mx)return;
+    U.mx.tracks.forEach(t=>{if(t.keep&&t.lang){U.fm[t.lang]={file:U.mx.file,fq:U.mx.fq,track:t.idx,mx:true};if(!U.langs.includes(t.lang))U.langs.push(t.lang)}});
+  };
   const draw=()=>{
     b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
-    <label class="fl">Languages</label><div class="qrow">${LANGS.map(l=>`<button class="qc ${U.langs.includes(l)?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}</div>
-    <div class="orig">Pick every language this video has. Each language needs its own MP4 file. Upload in 1080p and a 720p copy is made automatically in the cloud, so viewers can switch quality or leave it on Auto.</div>
-    ${U.langs.map(l=>{const f=U.fm[l];return`<div class="frow"><div><b>${l}</b><small>${f?(f.fq?f.fq+'p':'quality unknown')+' · '+mb(f.file.size)+' MB · '+esc(f.file.name):'No file chosen yet'}</small></div><button data-u="pf" data-l="${l}">${f?'Change':'Choose file'}</button></div>${f&&!f.fq?`<div class="qrow" style="margin:-2px 0 10px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-l="${l}" data-v="${q}">${q}p</button>`).join('')}</div>`:''}`}).join('')}
+    <label class="fl">Languages to upload</label><div class="qrow">${LANGS.map(l=>`<button class="qc ${U.langs.includes(l)?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}</div>
+    <div class="orig">Choose one file that already has several audio languages and Streamly finds them for you, or give each language its own file. MP4 and MKV both work. Upload in 1080p and a 720p copy is made automatically.</div>
+    <button class="drop" data-u="mx" style="margin-top:8px">${U.mx?'Choose another multi-language file':'Choose one file with several languages'}</button>
+    ${U.mx?`<div class="orig">Found <b>${U.mx.tracks.length}</b> audio track${U.mx.tracks.length>1?'s':''} in ${esc(U.mx.file.name)} (${U.mx.fq?U.mx.fq+'p':'quality unknown'}). Pick the language of each track and keep only the ones you want.</div>`+(U.mx.fq?'':`<div class="qrow">${[1080,720,480,360].map(q=>`<button class="qc" data-u="mxq" data-v="${q}">${q}p</button>`).join('')}</div>`)+U.mx.tracks.map((t,i)=>`<div class="frow"><div><b>Audio ${i+1}${t.code?' · '+esc(t.code):''}</b><small>${esc(t.name||(t.lang?'Detected: '+t.lang:'Language not found in the file'))}</small></div><button data-u="mxk" data-i="${i}">${t.keep?'Keep ✓':'Skip'}</button></div>${t.keep?`<div class="qrow" style="margin:-2px 0 10px">${LANGS.map(l=>`<button class="qc ${t.lang===l?'on':''}" data-u="mxl" data-i="${i}" data-v="${l}">${l}</button>`).join('')}</div>`:''}`).join(''):''}
+    ${U.langs.map(l=>{const f=U.fm[l];return`<div class="frow"><div><b>${l}</b><small>${f?(f.fq?f.fq+'p':'quality unknown')+' · '+(f.mx?'audio '+(f.track+1)+' of ':'')+mb(f.file.size)+' MB · '+esc(f.file.name):'No file chosen yet'}</small></div>${f&&f.mx?'':`<button data-u="pf" data-l="${l}">${f?'Change':'Choose file'}</button>`}</div>${f&&!f.fq?`<div class="qrow" style="margin:-2px 0 6px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-l="${l}" data-v="${q}">${q}p</button>`).join('')}</div>`:''}<input class="inp" data-lbl="${l}" maxlength="24" placeholder="Name viewers see for this audio (default: ${l})" value="${esc(U.labels[l]||'')}" style="margin:0 0 12px">`}).join('')}
     ${U.langs.length?`<div class="orig">Total to upload: ${mb(total())} MB</div>`:''}
-    ${mode==='file'?'':`<label class="fl">Categories</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
+    ${mode==='file'?'':`<label class="fl">Category</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one category.</div>'}
     <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div></div>`}
     <div class="prog" style="display:${U.busy?'block':'none'}"><div class="bar"><i style="width:${U.pct}%"></i></div><small class="sub" id="upm" style="padding:0">${esc(U.msg)}</small></div>
     ${U.err?`<div class="err" style="margin-top:12px">${esc(U.err)}</div>`:''}
@@ -833,50 +994,81 @@ function uploadForm(mode,sr,ctx){
   };
   const prog=(pct,msg)=>{U.pct=pct;U.msg=msg;const i=$('.prog .bar i',m),t=$('#upm',m);if(i)i.style.width=pct+'%';if(t)t.textContent=msg};
   draw();
-  m.addEventListener('input',e=>{if(e.target.id==='uft'){U.title=e.target.value;const g=$('[data-u=go]',m);if(g)g.disabled=!(ok()&&!U.busy)}});
+  m.addEventListener('input',e=>{
+    if(e.target.id==='uft'){U.title=e.target.value;const g=$('[data-u=go]',m);if(g)g.disabled=!(ok()&&!U.busy)}
+    else if(e.target.dataset&&e.target.dataset.lbl)U.labels[e.target.dataset.lbl]=e.target.value;
+  });
   $('#vf',m).addEventListener('change',async e=>{
     const f=e.target.files[0];e.target.value='';if(!f||!U.pickL)return;
-    const d=await detectQ(f);U.fm[U.pickL]={file:f,fq:d.q};U.pickL='';draw();
+    const slot=U.pickL;U.pickL='';
+    let pr=null;try{pr=await probeFile(f)}catch(x){}
+    const d=await detectQ(f);const fq=qFromHeight(pr&&pr.height)||d.q;
+    if(slot==='__mx'){
+      if(!pr||!pr.audio.length){toast('Could not read the audio tracks of this file. Add each language with its own file instead.');return}
+      U.mx={file:f,fq,tracks:pr.audio.map(a=>({idx:a.idx,code:a.code,name:a.name,lang:langFromCode(a.code,a.name),keep:true}))};
+      syncMx();draw();return;
+    }
+    let track=0;
+    if(pr&&pr.audio.length>1){const k=pr.audio.findIndex(a=>langFromCode(a.code,a.name)===slot);track=k<0?0:k;toast('This file has '+pr.audio.length+' audio tracks. Use "Choose one file with several languages" to add them all.')}
+    U.fm[slot]={file:f,fq,track};draw();
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   async function run(){
     U.busy=true;U.err='';draw();
     try{
-      const all=total();let done=0;const files={};const t0=Date.now();
-      for(const l of U.langs){
-        const f=U.fm[l];
-        const r=await uploadFile(f.file,loaded=>{const x=done+loaded,sp=x/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,x/all*100),`Uploading ${l} ${f.fq}p · ${mb(x)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
-        files[l]={[f.fq]:{name:r.name,size:f.file.size}};done+=f.file.size;
+      const groups=[],byFile=new Map();
+      U.langs.forEach(l=>{const f=U.fm[l];let g=byFile.get(f.file);if(!g){g={file:f.file,fq:f.fq,tracks:[]};byFile.set(f.file,g);groups.push(g)}g.tracks.push({lang:l,idx:f.track||0})});
+      const all=total();let done=0;const t0=Date.now();
+      for(const g of groups){
+        const r=await uploadFile(g.file,loaded=>{const x=done+loaded,sp=x/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,x/all*100),`Uploading ${g.tracks.map(t=>t.lang).join(' + ')} ${g.fq}p · ${mb(x)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
+        g.name=r.name;done+=g.file.size;
       }
-      prog(99,'Saving…');await commit(files);
+      prog(99,'Saving…');await commit(groups);
     }catch(e){U.busy=false;U.err=(e&&e.error)||(e&&e.offline?'Connection lost. Tap Upload to continue where it stopped.':'Upload failed. Tap Upload to continue.');draw()}
   }
-  async function commit(files){
+  async function commit(groups){
+    const epFiles={},epSrcs=[],lbl={};
+    U.langs.forEach(l=>{const v=(U.labels[l]||'').trim();if(v&&v!==l)lbl[l]=v});
+    for(const g of groups){
+      const ext=(g.file.name.split('.').pop()||'').toLowerCase();
+      const direct=(ext==='mp4'||ext==='m4v')&&g.tracks.length===1&&g.tracks[0].idx===0;
+      if(direct)epFiles[g.tracks[0].lang]={[g.fq]:{name:g.name,size:g.file.size}};
+      else epSrcs.push({name:g.name,fq:g.fq,size:g.file.size,tracks:g.tracks,drop:true});
+    }
+    const mkEp=n=>{const e={n,files:epFiles,want:WANT};if(epSrcs.length)e.srcs=epSrcs;if(Object.keys(lbl).length)e.labels=lbl;return e};
     let data,id=sr&&sr.id,cv=null;
-    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[...U.langs],cats:U.cats,seasons:[{eps:[{n:1,files,want:WANT}],done:U.final}]};cv=U.cover}
+    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[...U.langs],cats:U.cats,seasons:[{eps:[mkEp(1)],done:U.final}]};cv=U.cover}
     else{
       const fresh=(await api('/api/catalog')).find(x=>x.id===id)||sr;data=clone(fresh);['id','ts','views','cover'].forEach(k=>delete data[k]);
-      if(mode==='ep'){const se=data.seasons[sNo-1];se.eps.push({n:nNo,files,want:WANT});if(U.final)se.done=true}
-      else if(mode==='season')data.seasons.push({eps:[{n:1,files,want:WANT}],done:U.final});
-      else{const e=data.seasons[sNo-1].eps.find(x=>x.n===nNo);e.files=e.files||{};U.langs.forEach(l=>{e.files[l]=Object.assign(e.files[l]||{},files[l])});e.want=WANT}
+      if(mode==='ep'){const se=data.seasons[sNo-1];se.eps.push(mkEp(nNo));if(U.final)se.done=true}
+      else if(mode==='season')data.seasons.push({eps:[mkEp(1)],done:U.final});
+      else{const e=data.seasons[sNo-1].eps.find(x=>x.n===nNo);e.files=e.files||{};Object.keys(epFiles).forEach(l=>{e.files[l]=Object.assign(e.files[l]||{},epFiles[l])});if(epSrcs.length)e.srcs=(e.srcs||[]).concat(epSrcs);if(Object.keys(lbl).length)e.labels=Object.assign(e.labels||{},lbl);e.want=WANT}
       data.langs=data.langs||[];U.langs.forEach(l=>{if(!data.langs.includes(l))data.langs.push(l)});
       if(mode!=='file')data.cats=U.cats;
     }
     const rr=await api('/api/series',{json:{id,data,cover:cv}});const sid=id||rr.id;
     await loadCatalog(true);m.remove();
-    if(!U.langs.some(l=>U.fm[l].fq>720)){toast('Uploaded. Everyone can watch it now.');return}
+    const need=epSrcs.length>0||groups.some(g=>g.fq>720);
+    if(!need){toast('Uploaded. Everyone can watch it now.');return}
     try{
       const er=await api('/api/encode',{json:{sid,s:sNo,n:nNo}});
-      toast(er.started?'Uploaded. Making the 720p copy in the cloud. This takes a while.':'Uploaded. Everyone can watch it now.');
+      toast(er.started?(epSrcs.length?'Uploaded. Preparing the languages and 720p in the cloud. It plays when ready.':'Uploaded. Making 720p in the cloud. This takes a while.'):'Uploaded. Everyone can watch it now.');
       if(er.started)loadCatalog(true);
-    }catch(e){toast('Uploaded. Auto quality is not set up yet.')}
+    }catch(e){toast(epSrcs.length?'Uploaded, but the cloud converter is not set up, so this video cannot play yet.':'Uploaded. Auto quality is not set up yet.')}
   }
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u;
     if(u==='x'){if(U.busy&&!confirm('Upload is running. Close anyway? You can resume later.'))return;m.remove();return}
     if(U.busy)return;
     if(u==='pf'){U.pickL=t.dataset.l;$('#vf',m).click()}
+    else if(u==='mx'){U.pickL='__mx';$('#vf',m).click()}
+    else if(u==='mxk'){const tr=U.mx.tracks[+t.dataset.i];tr.keep=!tr.keep;syncMx();draw()}
+    else if(u==='mxl'){U.mx.tracks[+t.dataset.i].lang=t.dataset.v;syncMx();draw()}
+    else if(u==='mxq'){U.mx.fq=+t.dataset.v;syncMx();draw()}
     else if(u==='fq'){U.fm[t.dataset.l].fq=+t.dataset.v;draw()}
-    else if(u==='lg'){const l=t.dataset.v;if(U.langs.includes(l)){U.langs=U.langs.filter(x=>x!==l);delete U.fm[l]}else U.langs.push(l);draw()}
+    else if(u==='lg'){const l=t.dataset.v;
+      if(U.langs.includes(l)){const f=U.fm[l];if(f&&f.mx&&U.mx){const tr=U.mx.tracks.find(x=>x.idx===f.track);if(tr)tr.keep=false;syncMx()}else{U.langs=U.langs.filter(x=>x!==l);delete U.fm[l]}}
+      else U.langs.push(l);
+      draw()}
     else if(u==='pickcover')$('#cf',m).click();
     else if(u==='autocover'){const tt=U.title.trim();if(!tt){toast('Type the title first');return}U.cover=cover(tt,(tt.length*47)%360,(tt.length*91+120)%360,tt.length*13+7);U.coverNew=true;draw()}
     else if(u==='cat'){const v=t.dataset.v;U.cats=U.cats.includes(v)?U.cats.filter(x=>x!==v):[...U.cats,v];draw()}
@@ -885,9 +1077,10 @@ function uploadForm(mode,sr,ctx){
 }
 function keysModal(){
   const m=modal('Control keys'),b=$('.mbody',m);
-  const draw=async()=>{try{const ks=await api('/api/keys');let c=0;b.innerHTML=`<p class="sub" style="padding:0 0 12px">Deactivate a key and that person is signed out on every phone within seconds, even while watching.</p><div class="box">`+ks.map(k=>{const dev=k.kind==='dev';if(!dev)c++;return`<div class="row" ${dev?'style="cursor:default"':`data-u="k" data-h="${k.h}" data-a="${k.active}"`}><span>${dev?'Developer key':(k.tag==='friend'?'Friend key ':'Customer key ')+c}<small style="display:block;color:var(--tx2)">${esc(k.mask)}</small></span>${dev?'<em>Always active</em>':`<span class="tag ${k.active?'':'warn'}">${k.active?'Active':'Deactivated'}</span><i class="sw ${k.active?'on':''}"></i>`}</div>`}).join('')+`</div>`}catch(e){b.innerHTML='<p class="sub">Could not load keys. Check your internet.</p>'}};
+  const draw=async()=>{try{const ks=await api('/api/keys');let c=0;b.innerHTML=`<p class="sub" style="padding:0 0 12px">Deactivate a key and that person is signed out on every phone within seconds, even while watching.</p><div class="box">`+ks.map(k=>{const dev=k.kind==='dev';if(!dev)c++;return`<div class="row" ${dev?'style="cursor:default"':`data-u="k" data-h="${k.h}" data-a="${k.active}"`}><span>${dev?'Developer key':(k.tag==='friend'?'Friend key ':'Customer key ')+c}<small style="display:block;color:var(--tx2)">${esc(k.mask)}</small></span>${dev?'<em>Always active</em>':`${k.inuse?`<button class="tag" data-u="free" data-h="${k.h}">In use · Free</button>`:''}<span class="tag ${k.active?'':'warn'}">${k.active?'Active':'Deactivated'}</span><i class="sw ${k.active?'on':''}"></i>`}</div>`}).join('')+`</div>`}catch(e){b.innerHTML='<p class="sub">Could not load keys. Check your internet.</p>'}};
   draw();
   m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t)return;if(t.dataset.u==='x'){m.remove();return}
+    if(t.dataset.u==='free'){try{await api('/api/keys/'+t.dataset.h+'/free',{method:'POST'});toast('Key freed. It can be used on a new device now.');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
     const on=t.dataset.a==='1';try{await api('/api/keys/'+t.dataset.h,{json:{active:on?0:1}});toast(on?'Key deactivated. That user is signed out.':'Key activated');draw()}catch(er){toast((er&&er.error)||'Failed')}});
 }
 /* ---------- video page + player ---------- */
@@ -959,8 +1152,19 @@ function ended(){
   if(S.set.autoNext&&!D.offline&&nx){D.n=nx.n;D.chip=nx.n;const ls=epLangs(nx);if(!ls.includes(D.lang))D.lang=ls[0];loadEp(true);drawDetail();toast('Next: Episode '+D.n)}
   else showCtl();
 }
-function nativeFs(on){try{if(!NATIVE)return;const SO=plug('ScreenOrientation'),SB=plug('StatusBar');if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}}
-function barsSync(visible){if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;try{const SB=plug('StatusBar');(visible?SB.show():SB.hide()).catch(()=>{})}catch(e){}}
+function nativeFs(on){
+  try{
+    if(!NATIVE)return;
+    const IM=plug('Immersive'),SO=plug('ScreenOrientation'),SB=plug('StatusBar');
+    const old=()=>{try{if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
+    try{const p=on?IM.enter():IM.exit();if(p&&p.catch)p.catch(old)}catch(e){old()}
+  }catch(e){}
+}
+function barsSync(visible){
+  if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;
+  const old=()=>{try{const SB=plug('StatusBar');(visible?SB.show():SB.hide()).catch(()=>{})}catch(e){}};
+  try{const p=plug('Immersive').bars({visible});if(p&&p.catch)p.catch(old)}catch(e){old()}
+}
 function applyRatio(){
   const pl=$('#pl'),v=V(),st=$('#stage');if(!pl||!v||!st)return;
   if(!pl.classList.contains('fs')){v.style.cssText='';return}
@@ -1023,16 +1227,19 @@ function openDetail(id,o={}){
 }
 function drawDetail(){
   const s=cur(),se=s.seasons[D.s-1],ep=epObj(s,D.s,D.n),eps=[...se.eps].sort((a,b)=>a.n-b.n),inPl=S.playlist.includes(s.id),genres=(s.cats||[]).filter(c=>GENRES.includes(c));
-  const rec=S.series.filter(x=>x.id!==s.id).slice(0,9);
-  const chips=`<button data-act="d-chip" data-v="all" class="${D.chip==='all'?'on':''}">All</button>`+eps.map(e=>`<button data-act="d-chip" data-v="${e.n}" class="${D.chip===e.n?'on':''} ${epLangs(e).length?'':'pend'}">${pad(e.n)}</button>`).join('');
-  const all=D.chip==='all'?`<h3>Episodes</h3>`+eps.map(e=>`<div class="erow ${e.n===D.n?'on':''}" data-act="d-ep" data-v="${e.n}"><b>Episode ${pad(e.n)}</b><small>${epQs(e,D.lang).map(q=>q+'p').join(' / ')}</small>${D.offline?'':`<button class="ib" data-act="d-epdl" data-v="${e.n}" aria-label="Download episode ${e.n}">${ic('download',20)}</button>`}</div>`).join(''):'';
+  const scs=new Set(s.cats||[]);const rec=S.series.filter(x=>x.id!==s.id).map(x=>({x,k:(x.cats||[]).filter(c=>scs.has(c)).length})).sort((a,b)=>b.k-a.k||(b.x.ts||0)-(a.x.ts||0)).slice(0,9).map(o=>o.x);
+  const langs=seasonLangs(s,D.s);
+  const lchips=langs.map(l=>`<button data-act="d-langchip" data-v="${l}" class="${D.lang===l?'on':''}">${esc(labelOf(s,l,ep))}</button>`).join('');
+  const shown=eps.filter(e=>epHas(e,D.lang));
+  const chips=`<button data-act="d-chip" data-v="all" class="${D.chip==='all'?'on':''}">All</button>`+shown.map(e=>`<button data-act="d-chip" data-v="${e.n}" class="${D.chip===e.n?'on':''} ${epLangs(e).length?'':'pend'}">${pad(e.n)}</button>`).join('');
+  const all=D.chip==='all'?`<h3>Episodes</h3>`+shown.map(e=>`<div class="erow ${e.n===D.n?'on':''}" data-act="d-ep" data-v="${e.n}"><b>Episode ${pad(e.n)}</b><small>${epQs(e,D.lang).map(q=>q+'p').join(' / ')}</small>${D.offline?'':`<button class="ib" data-act="d-epdl" data-v="${e.n}" aria-label="Download episode ${e.n}">${ic('download',20)}</button>`}</div>`).join(''):'';
   const body=D.tab==='comm'?'<div id="cmwrap"></div>':`<div class="grid">${rec.map(x=>card(x)).join('')}</div>`;
-  $('#dsc').innerHTML=`<h2 class="dtitle">${esc(s.title)} <small>[${esc(D.lang)}]</small><button data-act="d-info">Info ›</button></h2>
+  $('#dsc').innerHTML=`<h2 class="dtitle">${esc(s.title)} <small>[${esc(labelOf(s,D.lang,ep))}]</small><button data-act="d-info">Info ›</button></h2>
   <div class="meta"><span class="st">${ic('star',14)}${s.views>0?s.views+' views':'New'}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
   <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In list':'Add to list'}</button>${D.offline?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
   <h3>Resources<small>Uploaded by ${esc(s.by||'Streamly')}</small></h3>
-  <div class="dd"><button data-act="d-lang">${esc(D.lang)} ${ic('chev',16)}</button><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button></div>
-  <div class="chips">${chips}</div>${all}
+  <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button></div>
+  ${langs.length?`<div class="lbl">Language</div><div class="chips langrow">${lchips}</div><div class="lbl">Episodes in ${esc(labelOf(s,D.lang,ep))}</div>`:''}<div class="chips">${chips}</div>${all}
   <div class="dtabs"><button data-act="d-tab" data-v="for" class="${D.tab==='for'?'on':''}">For you</button><button data-act="d-tab" data-v="comm" class="${D.tab==='comm'?'on':''}">Comments</button></div>${body}`;
   if(D.tab==='comm')mountChat($('#cmwrap'),'c:'+D.id,'Add a comment','cmb');else if(MOUNT&&MOUNT.scope.indexOf('c:')===0)MOUNT=null;
 }
@@ -1067,6 +1274,14 @@ function historyModal(){
     else if(u==='del'){store.set('strm.hist',getHist().filter(x=>x.id!==+t.dataset.id));draw()}
     else if(u==='go'){const x=getHist().find(h=>h.id===+t.dataset.id);m.remove();if(x)openDetail(x.id,{s:x.s,n:x.n,lang:x.lang,resume:x.fin?0:x.t})}});
 }
+async function setLang(l){
+  if(!D||l===D.lang&&epLangs(epObj(cur(),D.s,D.n)).includes(l))return;
+  const s=cur(),ep=epObj(s,D.s,D.n);
+  if(epLangs(ep).includes(l)){await switchLang(l);return}
+  const next=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n).find(e=>epLangs(e).includes(l));
+  if(!next){toast('This language is not ready yet');return}
+  D.lang=l;pickEp(D.s,next.n);
+}
 function pickEp(si,n){if(!epLangs(epObj(cur(),si,n)).length){toast('This episode is still being prepared. Please check back soon.');return}D.s=si;D.n=n;D.chip=n;const ls=epLangs(epObj(cur(),si,n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()}
 function epPopup(){
   const s=cur();let ps=D.s;
@@ -1074,7 +1289,7 @@ function epPopup(){
   host().appendChild(w);
   const draw=()=>{
     $('[data-e=season]',w).innerHTML=`Season ${pad(ps)} ${ic('chev',16)}`;
-    const eps=[...s.seasons[ps-1].eps].sort((a,b)=>a.n-b.n);
+    const eps=[...s.seasons[ps-1].eps].sort((a,b)=>a.n-b.n).filter(e=>epHas(e,D.lang));
     $('.epg',w).innerHTML=eps.map(e=>`<button class="epb ${ps===D.s&&e.n===D.n?'on':''} ${epLangs(e).length?'':'pend'}" data-n="${e.n}">${pad(e.n)}</button>`).join('');
   };
   draw();
@@ -1099,14 +1314,14 @@ async function checkUpdate(){
   }catch(e){}
 }
 async function doUpdate(){
-  if(NATIVE){window.open(SITE+APK_FILE+'?v='+Date.now(),'_blank');return}
+  if(NATIVE){window.open(SITE+'downloads.html','_blank');return}
   if(location.protocol==='file:'){window.open(SITE,'_blank');return}
   try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister());(await caches.keys()).forEach(k=>caches.delete(k))}catch(e){}
   location.reload();
 }
 function showUpdate(j){
   updShown=true;const force=!!j.force;
-  const hint=NATIVE?'The new Android app will download. Open it when it finishes to install the update.':(location.protocol==='file:'?'Download the latest version from our website to update this app.':'Streamly will restart to apply the update.');
+  const hint=NATIVE?'The download page will open. Install the new version from there.':(location.protocol==='file:'?'Download the latest version from our website to update this app.':'Streamly will restart to apply the update.');
   const w=el(`<div class="shw ${force?'lock':''}" style="z-index:950"><div class="shb"></div><div class="sh" style="text-align:center;padding:24px 20px calc(20px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:14px 0 4px;font-size:1.2rem">A new version is available</h4><p class="sub" style="padding:0 0 6px;font-size:.92rem">Streamly ${esc(j.version)} is ready. ${esc(j.notes||'It includes improvements and fixes to keep everything running smoothly.')}</p><p class="sub" style="padding:0 0 16px;font-size:.8rem;opacity:.8">${esc(hint)}</p><button class="cta" style="width:100%" data-i="up">Update now</button>${force?'':'<button class="btn2" style="width:100%;margin-top:10px" data-i="later">Later</button>'}</div></div>`);
   app.appendChild(w);
   w.addEventListener('click',e=>{
@@ -1123,25 +1338,22 @@ addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e})
 const isApp=()=>NATIVE||location.protocol==='file:'||(matchMedia('(display-mode: standalone)').matches)||!!navigator.standalone;
 async function checkApk(){if(isApp()||!/^https?:/.test(location.protocol))return;try{const r=await fetch(APK_FILE,{method:'HEAD',cache:'no-store'});APK_OK=r.ok}catch(e){}}
 function installPopup(){
-  if(isApp()||$('.shw'))return;
+  if(isApp()||$('.shw')||$('.dlgw'))return;
   if(Date.now()<store.get('strm.apkSkip',0))return;
-  const android=/Android/i.test(navigator.userAgent||'');
-  const mode=android&&APK_OK?'apk':(deferredPrompt?'pwa':'');if(!mode)return;
-  const w=el(`<div class="shw"><div class="shb"></div><div class="sh" style="text-align:center;padding:22px 18px calc(18px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(60)}</div><h4 style="margin:12px 0 4px;font-size:1.15rem">Get the Streamly app</h4><p class="sub" style="padding:0 0 16px">${mode==='apk'?'Download the Android app for a faster, full screen experience. When it finishes, open the file and allow installs from this browser if Android asks.':'Install Streamly on this device. It opens in its own window like a real app.'}</p>${mode==='apk'?`<a class="cta" style="display:block;text-decoration:none" href="${APK_FILE}?v=${Date.now()}" download data-i="dl">Download app (APK)</a>`:`<button class="cta" style="width:100%" data-i="pwa">Install app</button>`}<button class="btn2" style="width:100%;margin-top:10px" data-i="no">Not now</button></div></div>`);
+  const w=el(`<div class="shw"><div class="shb"></div><div class="sh" style="text-align:center;padding:22px 18px calc(18px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:12px 0 4px;font-size:1.15rem">Get the Streamly app</h4><p class="sub" style="padding:0 0 16px">Install Streamly on your phone, tablet or computer. Pick Android, iPhone, Windows or Mac on the next page.</p><a class="cta" style="display:block;text-decoration:none" href="downloads.html" data-i="go">Download the app</a><button class="btn2" style="width:100%;margin-top:10px" data-i="no">Not now</button></div></div>`);
   app.appendChild(w);
   const close=days=>{store.set('strm.apkSkip',Date.now()+days*864e5);w.remove()};
-  w.addEventListener('click',async e=>{
+  w.addEventListener('click',e=>{
     if(e.target.classList.contains('shb')){close(2);return}
-    const b=e.target.closest('[data-i]');if(!b)return;const i=b.dataset.i;
-    if(i==='no')close(3);
-    else if(i==='dl')setTimeout(()=>close(14),300);
-    else if(i==='pwa'){try{deferredPrompt.prompt();await deferredPrompt.userChoice}catch(x){}deferredPrompt=null;close(14)}
+    const b=e.target.closest('[data-i]');if(!b)return;
+    if(b.dataset.i==='no')close(3);else if(b.dataset.i==='go')setTimeout(()=>close(14),300);
   });
 }
 /* ---------- back button ---------- */
 let exitArm=0;
 function handleBack(){
   if($('.shw.lock'))return true;
+  const dg=$('.dlgw');if(dg){if(!dg.classList.contains('first'))dg.remove();return true}
   const sh=$$('.shw');if(sh.length){sh[sh.length-1].remove();return true}
   const md=$$('.modal');if(md.length){md[md.length-1].remove();return true}
   const pl=$('#pl');if(pl&&pl.classList.contains('fs')){fsToggle(false);return true}
@@ -1206,7 +1418,8 @@ const ACT={
   'd-del':()=>{const s=cur(),n=D.n,si=D.s;sheet('Delete',[{t:'Delete this episode (EP '+n+')',v:'ep'},{t:'Delete whole series',v:'all'}],it=>{
     if(it.v==='ep')confirmDelete('Delete EP '+n+'?','Video files of this episode',()=>deleteEpisode(s.id,si,n));
     else confirmDelete('Delete "'+s.title+'"?','All seasons, episodes and video files',()=>deleteSeries(s.id))})},
-  'd-lang':()=>{const ep=epObj(cur(),D.s,D.n);if(D.offline)return;sheet('Language',epLangs(ep).map(l=>({t:l,on:l===D.lang})),it=>{if(it.t!==D.lang)switchLang(it.t)})},
+  'd-lang':()=>{if(D.offline)return;const s=cur(),ep=epObj(s,D.s,D.n);sheet('Language',seasonLangs(s,D.s).map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>setLang(it.v))},
+  'd-langchip':t=>setLang(t.dataset.v),
   'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>{if(it.v===D.s)return;D.s=it.v;const e0=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n)[0];D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()})},
   'd-chip':t=>{const v=t.dataset.v;if(v==='all'){epPopup();return}else{if(!epLangs(epObj(cur(),D.s,+v)).length){toast('This episode is still being prepared. Please check back soon.');return}D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
   'd-ep':t=>{D.n=+t.dataset.v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},
@@ -1215,15 +1428,15 @@ const ACT={
   'dl-play':async t=>{const d=S.downloads.find(x=>x.key===t.dataset.key);if(!d)return;try{openDetail(d.id,{s:d.s,n:d.n,q:d.q,lang:d.lang,localUrl:await dlUrl(d)})}catch(e){toast('File not found. Download it again.')}},
   'dl-pause':t=>{const d=S.downloads.find(x=>x.key===t.dataset.key);if(!d)return;if(d.paused){runDl(d.key)}else{d.paused=true;abortDl(d.key)}saveDl();drawDownloads()},
   'dl-del':t=>{const d=S.downloads.find(x=>x.key===t.dataset.key);if(!d)return;abortDl(d.key);rmFile(d);S.downloads=S.downloads.filter(x=>x!==d);saveDl();drawDownloads();drawNav()},
-  'chat-send':async()=>{if(!MOUNT)return;const i=$('input',MOUNT.host),v=i.value.trim();if(!v)return;i.value='';try{await api('/api/chat',{json:{scope:MOUNT.scope,text:v,name:S.set.name}});await chatTick();paintMsgs(true)}catch(e){i.value=v;toast(e&&e.offline?'No internet':((e&&e.error)||'Could not send'))}},
+  'chat-send':async()=>{if(!MOUNT)return;{const sb=$('.cin .cta',MOUNT.host);if(sb){sb.classList.remove('sent');void sb.offsetWidth;sb.classList.add('sent')}}const i=$('input',MOUNT.host),v=i.value.trim();if(!v)return;i.value='';try{await api('/api/chat',{json:{scope:MOUNT.scope,text:v,name:S.set.name}});await chatTick();paintMsgs(true)}catch(e){i.value=v;toast(e&&e.offline?'No internet':((e&&e.error)||'Could not send'))}},
   tg:t=>{const k=t.dataset.k;S.set[k]=!S.set[k];saveSet();applySettings();drawMe()},
   pk:t=>{const k=t.dataset.k,row=SETS.flatMap(g=>g[1]).find(x=>x[0]===k);sheet(row[1],row[3].map(([v,l])=>({t:l,v,on:String(S.set[k])===String(v)})),it=>{S.set[k]=it.v;saveSet();applySettings();drawMe()})},
-  acc:t=>{S.set.accent=t.dataset.v;saveSet();applySettings();drawMe()},
-  photo:()=>$('#photoin').click(),
-  editname:()=>ask('Display name',S.set.name,v=>{S.set.name=v;saveSet();store.set('strm.named',true);syncProfile();drawMe()}),
+  acc:t=>{S.set.accent=t.dataset.v;if(S.set.theme==='custom')S.set.theme='dynamic';saveSet();applySettings();drawMe()},
+  photo:()=>nameDialog(false),
+  editname:()=>nameDialog(false),
   mode:()=>{S.mode=S.mode==='dev'?'customer':'dev';store.set('strm.mode',S.mode);if(S.tab==='upload')S.tab='me';drawNav();drawMe();toast(S.mode==='dev'?'Developer mode on':'Customer mode on')},
   ckeys:keysModal,
-  logout:()=>{wipe();store.del('strm.mode');S.mode='customer';renderGate()},
+  logout:async()=>{try{await api('/api/logout',{method:'POST'})}catch(e){}wipe();store.del('strm.mode');S.mode='customer';renderGate()},
   act:t=>{const k=t.dataset.k;
     if(k==='_clrdl'){S.downloads.forEach(d=>{abortDl(d.key);rmFile(d)});S.downloads=[];saveDl();drawMe();drawNav();toast('Downloads deleted')}
     else if(k==='_cache')toast('Cache cleared');
@@ -1231,20 +1444,22 @@ const ACT={
   dstorage:async()=>{try{toast('Checking…');const r=await api('/api/storage');sheet('Server storage',[{t:'Videos stored',s:(r.bytes/1073741824).toFixed(2)+' GB · '+r.files+' files'},{t:'Unfinished uploads',s:r.unfinished+' · '+mb(r.unfinishedBytes||0)+' MB'},{t:'Free limit',s:'10 GB (Backblaze)'}],()=>{})}catch(e){toast((e&&e.error)||'Could not check')}},
   dclean:()=>sheet('Cancel unfinished uploads?',[{t:'Cancel them now',s:'Do not do this while an upload is running',v:1},{t:'Keep',v:0}],async it=>{if(!it.v)return;try{const r=await api('/api/upload/cleanup',{method:'POST'});toast('Cancelled '+r.cancelled+' unfinished upload'+(r.cancelled===1?'':'s'))}catch(e){toast((e&&e.error)||'Failed')}}),
   hist:historyModal,
+  hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>{const i=$('#q');if(i)i.focus()},260)},
   notif:async()=>{if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
+  hub:()=>{location.href='downloads.html'},
   apk:()=>{location.href=APK_FILE+'?v='+Date.now()},
   'up-new':()=>uploadForm('new'),
   'up-next':nextSeason
 };
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||!t.dataset.act)return;const f=ACT[t.dataset.act];f&&f(t,e)});
-document.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;drawGrid()}});
+document.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;drawGrid()}else if(e.target.id==='hue'){S.set.hue=+e.target.value;S.set.theme='custom';applySettings()}});
 document.addEventListener('keydown',e=>{if(e.target.id==='q'&&e.key==='Enter')e.target.blur();if(MOUNT&&e.key==='Enter'&&e.target.closest('.cin'))ACT['chat-send']()});
-document.addEventListener('change',e=>{if(e.target.id!=='photoin')return;const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=120;const x=c.getContext('2d');const r=Math.max(120/img.width,120/img.height);x.drawImage(img,(120-img.width*r)/2,(120-img.height*r)/2,img.width*r,img.height*r);S.set.photo=c.toDataURL('image/jpeg',.8);saveSet();syncProfile();drawMe()};img.src=URL.createObjectURL(f)});
+document.addEventListener('change',e=>{if(e.target.id==='hue'){saveSet();drawMe();return}if(e.target.id!=='photoin')return;const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=120;const x=c.getContext('2d');const r=Math.max(120/img.width,120/img.height);x.drawImage(img,(120-img.width*r)/2,(120-img.height*r)/2,img.width*r,img.height*r);S.set.photo=c.toDataURL('image/jpeg',.8);saveSet();syncProfile();drawMe()};img.src=URL.createObjectURL(f)});
 const offUI=()=>{const o=$('#offchip');if(o)o.style.display=navigator.onLine?'none':'block';toast(navigator.onLine?'Back online':'You are offline. Downloads still play.')};
 addEventListener('online',offUI);addEventListener('offline',offUI);
 /* ---------- boot ---------- */
 applySettings();splash();wake();
-if(!isApp())checkApk().then(()=>setTimeout(installPopup,3800));
+if(!isApp())setTimeout(installPopup,3800);
 setTimeout(checkUpdate,6000);setInterval(checkUpdate,600000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 loadConfig().then(()=>{
   const un=store.get('strm.unlock',null);
