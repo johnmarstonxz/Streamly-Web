@@ -334,6 +334,13 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .chip-s{align-items:center}
 .feeds{gap:14px}.feeds button{font-size:.93rem}
 .qbtn{white-space:nowrap}
+/* v3.1 */
+.sfix{top:0}
+.hlogo{flex:none;display:grid;place-items:center}
+.sfix .search .sbox{min-width:0}.sfix .search .tag{flex:none;white-space:nowrap}
+.stage .poster{display:none!important}
+.stage .art{filter:blur(18px) saturate(1.2) brightness(.85)}
+.stage.vready .art{filter:blur(30px) saturate(1.15) brightness(.4)}
 </style>
 </head>
 <body>
@@ -386,23 +393,24 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.0';
+const APP_VERSION='3.1';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
-const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies',fandub:'Fan Dub'};
-const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies',fandub:'Fan Dub'};
-const inCat=(s,c)=>(s.cats||[]).includes(c)||(c==='Movies'&&(s.cats||[]).includes('Movie'));
+const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
+const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
+const inCat=(s,c)=>(s.cats||[]).includes(c)||(c==='Movies'&&(s.cats||[]).includes('Movie'))||(c==='For you'&&(s.cats||[]).includes('Fan Dub'));
 const normCats=a=>[...new Set((a||[]).map(c=>c==='Movie'?'Movies':c).filter(c=>Object.values(FEEDCAT).includes(c)))];
 const FEEDCATS=Object.values(FEEDCAT);
 const RATIOS=[['16:9','16:9','Default'],['4:3','4:3',''],['21:9','21:9','Cinema'],['orig','Original','Video\'s own shape'],['fill','Fill screen','Crops the edges']];
 const ratioLabel=r=>(RATIOS.find(x=>x[0]===r)||RATIOS[0])[1];
 const GENRES=[];
-const LANGS=['Hindi','English','Japanese'];
-const FLANGS=['Hindi','English','Japanese'];
+const LANGS=['Hindi','English'];
+const FLANGS=['Hindi','English'];
 const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:0,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9',volume:1,subLang:'',hue:265};
 const S={kind:null,mode:'customer',tab:'home',feed:'foryou',q:'',set:Object.assign({},DEF,store.get('strm.set',{})),series:store.get('strm.cat5',[]),playlist:store.get('strm.pl',[]),downloads:store.get('strm.dl',[]),unread:0};
 const saveSet=()=>store.set('strm.set',S.set);
-S.lang=store.get('strm.lang','');
-const langChips=()=>['',...FLANGS].map(l=>`<button data-act="lang" data-v="${l}" class="${S.lang===l?'on':''}">${l||'All'}</button>`).join('');
+S.lang=store.get('strm.lang','');if(S.lang==='Japanese'){S.lang='';store.set('strm.lang','')}
+function homeLangs(){const x=[...FLANGS];S.series.forEach(s=>(s.langs||[]).forEach(l=>{if(l&&l!=='Japanese'&&!x.includes(l))x.push(l)}));return x}
+const langChips=()=>['',...homeLangs()].map(l=>`<button data-act="lang" data-v="${l}" class="${S.lang===l?'on':''}">${l||'All'}</button>`).join('');
 const saveDl=()=>store.set('strm.dl',S.downloads.map(d=>({...d,run:undefined})));
 const fmt=t=>{t=Math.max(0,Math.floor(t||0));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
 const pad=n=>String(n).padStart(2,'0');
@@ -479,7 +487,7 @@ async function loadCatalog(force){
     if(D&&!ser(D.id)){closeDetail(true);toast('This video was removed')}
   }catch(e){}
 }
-function refreshView(){const t=S.tab;if(t==='home'&&$('#grid'))drawGrid();else if(t==='playlist')drawPlaylist();else if(t==='upload')drawUpload();else if(t==='downloads')drawDownloads()}
+function refreshView(){const t=S.tab;if(t==='home'&&$('#grid')){const lg=$('#langs');if(lg&&S.feed==='foryou')lg.innerHTML=langChips();drawGrid()}else if(t==='playlist')drawPlaylist();else if(t==='upload')drawUpload();else if(t==='downloads')drawDownloads()}
 async function pollMe(){if(!TOKEN||!navigator.onLine)return;try{const r=await api('/api/me');if((r.tag||'')!==(S.tag||'')){S.tag=r.tag||'';const u=store.get('strm.unlock',{});u.tag=S.tag;store.set('strm.unlock',u);if(S.tab==='me'&&$('.prof'))drawMe()}}catch(e){}}
 async function pollUnread(){
   if(!TOKEN||!navigator.onLine||S.tab==='chats')return;
@@ -522,7 +530,7 @@ function loop(){
 }
 function onScroll(e){
   const c=e.target,now=performance.now(),y=c.scrollTop;app.style.setProperty('--sy',y);
-  const sf=$('.sfix');if(sf){const k=Math.min(y,48);sf.style.transform=`translateY(${-k}px)`;sf.classList.toggle('pin',k>=48)}
+  const sf=$('.sfix');if(sf)sf.classList.toggle('pin',y>4);
   const v=Math.abs(y-lastY)/Math.max(8,now-lastT)*16;vel=Math.max(vel,v);lastY=y;lastT=now;wake();if(!raf)raf=requestAnimationFrame(loop);
 }
 document.addEventListener('pointerdown',()=>{wake();if(!raf)raf=requestAnimationFrame(loop)},{passive:true});
@@ -609,8 +617,8 @@ function feedList(){
 }
 function drawGrid(){const l=feedList();$('#grid').innerHTML=l.length?l.map(s=>card(s,newest(s))).join(''):`<div class="empty" style="grid-column:1/-1"><b>${S.series.length?(S.q?'No results':'Nothing here yet'):'No videos yet'}</b>${S.series.length?(S.q?'Try another title or genre.':'Videos added to this section will show up here.'):(S.mode==='dev'?'Open the Upload tab and tap Add New.':'New videos from the developer will show up here.')}</div>`}
 function drawHome(){
-  $('#feedbar').innerHTML=`<div class="sfix"><div class="search"><div class="sbox">${ic('search',18)}<input id="q" placeholder="Search videos" value="${esc(S.q)}" enterkeyhint="search"></div><button class="sbtn" data-act="dosearch">Search</button></div></div>`;
-  $('#content').innerHTML=`<div class="hdr"><div class="brand">${logo(26)}<span>Streamly</span></div><div class="chip-s">${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span><button class="hsb" data-act="hsearch" aria-label="Search">${ic('search',22)}</button></div></div><div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${S.feed==='foryou'?langChips():''}</div><div class="grid" id="grid"></div>`;
+  $('#feedbar').innerHTML=`<div class="sfix"><div class="search"><span class="hlogo">${logo(34)}</span><div class="sbox">${ic('search',18)}<input id="q" placeholder="Search videos" value="${esc(S.q)}" enterkeyhint="search" autocomplete="off"></div>${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span></div></div>`;
+  $('#content').innerHTML=`<div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${S.feed==='foryou'?langChips():''}</div><div class="grid" id="grid"></div>`;
   drawGrid();
 }
 function drawPlaylist(){
@@ -734,7 +742,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}${!isApp()?`<div class="row" data-act="hub"><span>Download the app</span><em>All devices ›</em></div>`:''}<div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -888,7 +896,7 @@ async function uploadFile(file,onProgress){
   await api('/api/upload/finish',{json:{fileId:st.fileId,sha1s}});store.del(rk);
   return{name:st.fileName};
 }
-const LANGMAP={hin:'Hindi',hi:'Hindi',eng:'English',en:'English',jpn:'Japanese',ja:'Japanese'};
+const LANGMAP={hin:'Hindi',hi:'Hindi',eng:'English',en:'English'};
 function langFromCode(code,name){const c=String(code||'').toLowerCase().split('-')[0];if(LANGMAP[c])return LANGMAP[c];const nm=String(name||'').toLowerCase();for(const l of LANGS)if(nm.includes(l.toLowerCase()))return l;return''}
 const qFromHeight=h=>h>=1000?1080:h>=700?720:h>=450?480:h>0?360:0;
 function ebmlId(u,p){const b=u[p];let len=1,m=0x80;while(len<=4&&!(b&m)){len++;m>>=1}if(len>4)return null;let v=0;for(let i=0;i<len;i++)v=v*256+u[p+i];return{id:v,len}}
@@ -959,13 +967,17 @@ function detectQ(file){
     v.onloadedmetadata=()=>{const h=v.videoHeight,w=v.videoWidth;URL.revokeObjectURL(u);res({q:h>=1000?1080:h>=700?720:h>=450?480:360,w,h,dur:v.duration})};
     v.onerror=()=>{URL.revokeObjectURL(u);res({q:0,w:0,h:0,dur:0})};v.src=u});
 }
+const CLOUD_MSG='The cloud converter is not set up yet, so this file cannot be prepared for playing. Upload each language as its own MP4 file instead.';
+async function encOk(){try{const j=await api('/api/ping',{noauth:true});return typeof j.enc==='boolean'?j.enc:null}catch(e){return null}}
 function uploadForm(mode,sr,ctx){
   const sNo=mode==='new'?1:mode==='season'?sr.seasons.length+1:mode==='ep'?sr.seasons.length:ctx.s;
   const nNo=mode==='new'||mode==='season'?1:mode==='ep'?sr.seasons[sr.seasons.length-1].eps.reduce((a,e)=>Math.max(a,e.n),0)+1:ctx.n;
   const WANT=[720];
   const first=(sr&&sr.langs&&sr.langs.find(l=>LANGS.includes(l)))||'Hindi';
-  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:mode==='file'?[]:[first],fm:{},labels:{},pickL:'',mx:null,final:false,cats:sr?normCats(sr.cats):['For you'],busy:false,pct:0,msg:'',err:''};
+  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:mode==='file'?[]:[first],fm:{},labels:{},pickL:'',custom:[],mx:null,final:false,cats:sr?normCats(sr.cats):['For you'],busy:false,pct:0,msg:'',err:''};
   const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add language · S'+sNo+' EP '+nNo),b=$('.mbody',m);
+  const pool=()=>{const x=[...LANGS];[...((sr&&sr.langs)||[]).filter(l=>l!=='Japanese'),...U.custom,...U.langs].forEach(l=>{if(l&&!x.includes(l))x.push(l)});return x};
+  const cleanLang=v=>{v=String(v||'').replace(/[^\p{L}\p{N} \-]/gu,'').replace(/\s+/g,' ').trim().slice(0,20);return v?v[0].toUpperCase()+v.slice(1):''};
   const feedOk=()=>mode==='file'||U.cats.some(c=>FEEDCATS.includes(c));
   const mxOk=()=>!(U.mx&&U.mx.tracks.some(t=>t.keep&&!t.lang));
   const ok=()=>U.title.trim()&&U.cover&&U.langs.length&&U.langs.every(l=>U.fm[l]&&U.fm[l].fq)&&mxOk()&&feedOk();
@@ -980,10 +992,10 @@ function uploadForm(mode,sr,ctx){
     b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
-    <label class="fl">Languages to upload</label><div class="qrow">${LANGS.map(l=>`<button class="qc ${U.langs.includes(l)?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}</div>
+    <label class="fl">Languages &middot; tap to add or remove (no limit)</label><div class="qrow">${pool().map(l=>`<button class="qc ${U.langs.includes(l)?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}<button class="qc" data-u="addlang">+ Add language</button></div>
     <div class="orig">Choose one file that already has several audio languages and Streamly finds them for you, or give each language its own file. MP4 and MKV both work. Upload in 1080p and a 720p copy is made automatically.</div>
     <button class="drop" data-u="mx" style="margin-top:8px">${U.mx?'Choose another multi-language file':'Choose one file with several languages'}</button>
-    ${U.mx?`<div class="orig">Found <b>${U.mx.tracks.length}</b> audio track${U.mx.tracks.length>1?'s':''} in ${esc(U.mx.file.name)} (${U.mx.fq?U.mx.fq+'p':'quality unknown'}). Pick the language of each track and keep only the ones you want.</div>`+(U.mx.fq?'':`<div class="qrow">${[1080,720,480,360].map(q=>`<button class="qc" data-u="mxq" data-v="${q}">${q}p</button>`).join('')}</div>`)+U.mx.tracks.map((t,i)=>`<div class="frow"><div><b>Audio ${i+1}${t.code?' · '+esc(t.code):''}</b><small>${esc(t.name||(t.lang?'Detected: '+t.lang:'Language not found in the file'))}</small></div><button data-u="mxk" data-i="${i}">${t.keep?'Keep ✓':'Skip'}</button></div>${t.keep?`<div class="qrow" style="margin:-2px 0 10px">${LANGS.map(l=>`<button class="qc ${t.lang===l?'on':''}" data-u="mxl" data-i="${i}" data-v="${l}">${l}</button>`).join('')}</div>`:''}`).join(''):''}
+    ${U.mx?`<div class="orig">Found <b>${U.mx.tracks.length}</b> audio track${U.mx.tracks.length>1?'s':''} in ${esc(U.mx.file.name)} (${U.mx.fq?U.mx.fq+'p':'quality unknown'}). Pick the language of each track. Tap Add or Remove to choose which tracks to upload.</div>`+(U.mx.fq?'':`<div class="qrow">${[1080,720,480,360].map(q=>`<button class="qc" data-u="mxq" data-v="${q}">${q}p</button>`).join('')}</div>`)+U.mx.tracks.map((t,i)=>`<div class="frow"><div><b>Audio ${i+1}${t.code?' · '+esc(t.code):''}</b><small>${esc(t.name||(t.lang?'Detected: '+t.lang:'Language not found in the file'))}</small></div><button data-u="mxk" data-i="${i}">${t.keep?'Remove':'Add'}</button></div>${t.keep?`<div class="qrow" style="margin:-2px 0 10px">${pool().map(l=>`<button class="qc ${t.lang===l?'on':''}" data-u="mxl" data-i="${i}" data-v="${l}">${l}</button>`).join('')}<button class="qc" data-u="mxadd" data-i="${i}">+ Add language</button></div>`:''}`).join(''):''}
     ${U.langs.map(l=>{const f=U.fm[l];return`<div class="frow"><div><b>${l}</b><small>${f?(f.fq?f.fq+'p':'quality unknown')+' · '+(f.mx?'audio '+(f.track+1)+' of ':'')+mb(f.file.size)+' MB · '+esc(f.file.name):'No file chosen yet'}</small></div>${f&&f.mx?'':`<button data-u="pf" data-l="${l}">${f?'Change':'Choose file'}</button>`}</div>${f&&!f.fq?`<div class="qrow" style="margin:-2px 0 6px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-l="${l}" data-v="${q}">${q}p</button>`).join('')}</div>`:''}<input class="inp" data-lbl="${l}" maxlength="24" placeholder="Name viewers see for this audio (default: ${l})" value="${esc(U.labels[l]||'')}" style="margin:0 0 12px">`}).join('')}
     ${U.langs.length?`<div class="orig">Total to upload: ${mb(total())} MB</div>`:''}
     ${mode==='file'?'':`<label class="fl">Category</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one category.</div>'}
@@ -1003,13 +1015,15 @@ function uploadForm(mode,sr,ctx){
     const slot=U.pickL;U.pickL='';
     let pr=null;try{pr=await probeFile(f)}catch(x){}
     const d=await detectQ(f);const fq=qFromHeight(pr&&pr.height)||d.q;
+    const isMp4=/\.(mp4|m4v)$/i.test(f.name),nAud=(pr&&pr.audio&&pr.audio.length)||1;
+    if((!isMp4||(slot==='__mx'&&nAud>1))&&(await encOk())===false){toast(CLOUD_MSG);return}
     if(slot==='__mx'){
       if(!pr||!pr.audio.length){toast('Could not read the audio tracks of this file. Add each language with its own file instead.');return}
       U.mx={file:f,fq,tracks:pr.audio.map(a=>({idx:a.idx,code:a.code,name:a.name,lang:langFromCode(a.code,a.name),keep:true}))};
       syncMx();draw();return;
     }
     let track=0;
-    if(pr&&pr.audio.length>1){const k=pr.audio.findIndex(a=>langFromCode(a.code,a.name)===slot);track=k<0?0:k;toast('This file has '+pr.audio.length+' audio tracks. Use "Choose one file with several languages" to add them all.')}
+    if(pr&&pr.audio.length>1){const k=pr.audio.findIndex(a=>langFromCode(a.code,a.name)===slot);track=k<0?0:k;if(track>0&&(await encOk())===false){toast(CLOUD_MSG);return}toast('This file has '+pr.audio.length+' audio tracks. Use "Choose one file with several languages" to add them all.')}
     U.fm[slot]={file:f,fq,track};draw();
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
@@ -1063,6 +1077,8 @@ function uploadForm(mode,sr,ctx){
     else if(u==='mx'){U.pickL='__mx';$('#vf',m).click()}
     else if(u==='mxk'){const tr=U.mx.tracks[+t.dataset.i];tr.keep=!tr.keep;syncMx();draw()}
     else if(u==='mxl'){U.mx.tracks[+t.dataset.i].lang=t.dataset.v;syncMx();draw()}
+    else if(u==='addlang'){ask('New language name','',v=>{const l=cleanLang(v);if(!l)return;if(!LANGS.includes(l)&&!U.custom.includes(l))U.custom.push(l);if(!U.langs.includes(l))U.langs.push(l);draw()},20)}
+    else if(u==='mxadd'){const i=+t.dataset.i;ask('New language name','',v=>{const l=cleanLang(v);if(!l)return;if(!LANGS.includes(l)&&!U.custom.includes(l))U.custom.push(l);U.mx.tracks[i].lang=l;syncMx();draw()},20)}
     else if(u==='mxq'){U.mx.fq=+t.dataset.v;syncMx();draw()}
     else if(u==='fq'){U.fm[t.dataset.l].fq=+t.dataset.v;draw()}
     else if(u==='lg'){const l=t.dataset.v;
@@ -1156,12 +1172,12 @@ function nativeFs(on){
   try{
     if(!NATIVE)return;
     const IM=plug('Immersive'),SO=plug('ScreenOrientation'),SB=plug('StatusBar');
-    const old=()=>{try{if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
+    const old=()=>{try{if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.hide().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
     try{const p=on?IM.enter():IM.exit();if(p&&p.catch)p.catch(old)}catch(e){old()}
   }catch(e){}
 }
-function barsSync(visible){
-  if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;
+function barsSync(){
+  const visible=false;if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;
   const old=()=>{try{const SB=plug('StatusBar');(visible?SB.show():SB.hide()).catch(()=>{})}catch(e){}};
   try{const p=plug('Immersive').bars({visible});if(p&&p.catch)p.catch(old)}catch(e){old()}
 }
@@ -1182,7 +1198,7 @@ addEventListener('resize',fitRot);addEventListener('orientationchange',()=>setTi
 function fsToggle(on){
   const pl=$('#pl');if(!pl)return;const want=on===undefined?!pl.classList.contains('fs'):on;
   pl.classList.toggle('fs',want);$('#detail').classList.toggle('isfs',want);$('#fsb').innerHTML=ic(want?'fsx':'fs',20);fitRot();nativeFs(want);popAnim($('#stage'));
-  try{if(want){const r=document.documentElement.requestFullscreen;const pr=r?r.call(document.documentElement):Promise.reject();pr.then(()=>screen.orientation.lock('landscape')).catch(()=>{}).then(()=>setTimeout(fitRot,300))}else{document.fullscreenElement&&document.exitFullscreen();screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}}catch(e){}
+  try{if(NATIVE){}else if(want){const r=document.documentElement.requestFullscreen;const pr=r?r.call(document.documentElement):Promise.reject();pr.then(()=>screen.orientation.lock('landscape')).catch(()=>{}).then(()=>setTimeout(fitRot,300))}else{document.fullscreenElement&&document.exitFullscreen();screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}}catch(e){}
   showCtl();
 }
 document.addEventListener('fullscreenchange',()=>{const pl=$('#pl');if(!document.fullscreenElement&&pl&&pl.classList.contains('fs')){pl.classList.remove('fs','rot');$('#detail').classList.remove('isfs');$('#fsb').innerHTML=ic('fs',20);popAnim($('#stage'))}});
@@ -1364,6 +1380,7 @@ function handleBack(){
   exitArm=Date.now();toast('Press back again to exit');return true;
 }
 let leaving=false;
+window.__streamlyBack=()=>{let r;try{r=handleBack()}catch(e){r='exit'}if(r==='exit'){leaving=true;return'exit'}return'ok'};
 {
   let armed=false;
   try{history.replaceState({a:0},'')}catch(e){}
@@ -1446,7 +1463,7 @@ const ACT={
   hist:historyModal,
   hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>{const i=$('#q');if(i)i.focus()},260)},
   notif:async()=>{if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
-  hub:()=>{location.href='downloads.html'},
+  hub:()=>{if(NATIVE||location.protocol==='file:'){window.open(SITE+'downloads.html','_blank');return}location.href='downloads.html'},
   apk:()=>{location.href=APK_FILE+'?v='+Date.now()},
   'up-new':()=>uploadForm('new'),
   'up-next':nextSeason

@@ -1,5 +1,5 @@
 {
-  "version": "3.0",
-  "notes": "New: Fan Dub tab, several audio languages per video, one device per key, a brighter look and a download page for every device.",
+  "version": "3.1",
+  "notes": "New: search bar next to the logo, fullscreen hides all phone buttons, back button goes one step back, any number of languages per video, Download the app inside Me.",
   "force": false
 }
