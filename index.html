@@ -394,7 +394,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.2';
+const APP_VERSION='3.3';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -785,7 +785,7 @@ function manage(id){
   draw();
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u,sr=ser(id);
     if(u==='x')m.remove();
-    else if(u==='ep'){const si=+t.dataset.s,n=+t.dataset.n;sheet('S'+si+' · EP '+n,[{t:'Watch',v:'w'},{t:'Add language or quality',v:'f'},{t:'Add subtitles',v:'s'},{t:'Make lower qualities (cloud)',v:'g'},{t:'Delete this episode',v:'d'}],it=>{
+    else if(u==='ep'){const si=+t.dataset.s,n=+t.dataset.n;sheet('S'+si+' · EP '+n,[{t:'Watch',v:'w'},{t:'Add another quality',v:'f'},{t:'Add subtitles',v:'s'},{t:'Make lower qualities (cloud)',v:'g'},{t:'Delete this episode',v:'d'}],it=>{
       if(it.v==='w'){m.remove();openDetail(id,{s:si,n})}
       else if(it.v==='f'){m.remove();uploadForm('file',sr,{s:si,n})}
       else if(it.v==='g'){genQualities(id,si,n)}
@@ -986,11 +986,13 @@ function uploadForm(mode,sr,ctx){
   const sNo=mode==='new'?1:mode==='season'?sr.seasons.length+1:mode==='ep'?sr.seasons.length:ctx.s;
   const nNo=mode==='new'||mode==='season'?1:mode==='ep'?sr.seasons[sr.seasons.length-1].eps.reduce((a,e)=>Math.max(a,e.n),0)+1:ctx.n;
   const WANT=[720];
-  const first=(sr&&sr.langs&&sr.langs.find(l=>LANGS.includes(l)))||'Hindi';
-  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:mode==='file'?[]:[first],fm:{},labels:{},pickL:'',custom:[],mx:null,final:false,cats:sr?normCats(sr.cats):['For you'],busy:false,pct:0,msg:'',err:''};
-  const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add language · S'+sNo+' EP '+nNo),b=$('.mbody',m);
+  const first0=(sr&&sr.langs&&sr.langs.find(l=>LANGS.includes(l)))||'Hindi';
+  const ep0=mode==='file'&&sr?epObj(sr,ctx.s,ctx.n):null;const first=(ep0&&epLangs(ep0)[0])||first0;
+  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:[first],fm:{},labels:{},pickL:'',custom:[],mx:null,final:false,cats:sr?normCats(sr.cats):['For you'],busy:false,pct:0,msg:'',err:''};
+  const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add quality · S'+sNo+' EP '+nNo),b=$('.mbody',m);
   const pool=()=>{const x=[...LANGS];[...((sr&&sr.langs)||[]).filter(l=>l!=='Japanese'),...U.custom,...U.langs].forEach(l=>{if(l&&!x.includes(l))x.push(l)});return x};
   const cleanLang=v=>{v=String(v||'').replace(/[^\p{L}\p{N} \-]/gu,'').replace(/\s+/g,' ').trim().slice(0,20);return v?v[0].toUpperCase()+v.slice(1):''};
+  const setLangOne=l=>{const old=U.langs[0];if(old&&old!==l){if(U.fm[old]){U.fm[l]=U.fm[old];delete U.fm[old]}delete U.labels[old]}U.langs=[l]};
   const feedOk=()=>mode==='file'||U.cats.some(c=>FEEDCATS.includes(c));
   const mxOk=()=>!(U.mx&&U.mx.tracks.some(t=>t.keep&&!t.lang));
   const ok=()=>U.title.trim()&&U.cover&&U.langs.length&&U.langs.every(l=>U.fm[l]&&U.fm[l].fq)&&mxOk()&&feedOk();
@@ -1005,11 +1007,8 @@ function uploadForm(mode,sr,ctx){
     b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
-    <label class="fl">Languages &middot; tap to add or remove (no limit)</label><div class="qrow">${pool().map(l=>`<button class="qc ${U.langs.includes(l)?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}<button class="qc" data-u="addlang">+ Add language</button></div>
-    <div class="orig">Choose one file that already has several audio languages and Streamly finds them for you, or give each language its own file. MP4 and MKV both work. Upload in 1080p and a 720p copy is made automatically.</div>
-    <button class="drop" data-u="mx" style="margin-top:8px">${U.mx?'Choose another multi-language file':'Choose one file with several languages'}</button>
-    ${U.mx?`<div class="orig">Found <b>${U.mx.tracks.length}</b> audio track${U.mx.tracks.length>1?'s':''} in ${esc(U.mx.file.name)} (${U.mx.fq?U.mx.fq+'p':'quality unknown'}). Pick the language of each track. Tap Add or Remove to choose which tracks to upload.</div>`+(U.mx.fq?'':`<div class="qrow">${[1080,720,480,360].map(q=>`<button class="qc" data-u="mxq" data-v="${q}">${q}p</button>`).join('')}</div>`)+U.mx.tracks.map((t,i)=>`<div class="frow"><div><b>Audio ${i+1}${t.code?' · '+esc(t.code):''}</b><small>${esc(t.name||(t.lang?'Detected: '+t.lang:'Language not found in the file'))}</small></div><button data-u="mxk" data-i="${i}">${t.keep?'Remove':'Add'}</button></div>${t.keep?`<div class="qrow" style="margin:-2px 0 10px">${pool().map(l=>`<button class="qc ${t.lang===l?'on':''}" data-u="mxl" data-i="${i}" data-v="${l}">${l}</button>`).join('')}<button class="qc" data-u="mxadd" data-i="${i}">+ Add language</button></div>`:''}`).join(''):''}
-    ${U.langs.map(l=>{const f=U.fm[l];return`<div class="frow"><div><b>${l}</b><small>${f?(f.fq?f.fq+'p':'quality unknown')+' · '+(f.mx?'audio '+(f.track+1)+' of ':'')+mb(f.file.size)+' MB · '+esc(f.file.name):'No file chosen yet'}</small></div>${f&&f.mx?'':`<button data-u="pf" data-l="${l}">${f?'Change':'Choose file'}</button>`}</div>${f&&!f.fq?`<div class="qrow" style="margin:-2px 0 6px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-l="${l}" data-v="${q}">${q}p</button>`).join('')}</div>`:''}<input class="inp" data-lbl="${l}" maxlength="24" placeholder="Name viewers see for this audio (default: ${l})" value="${esc(U.labels[l]||'')}" style="margin:0 0 12px">`}).join('')}
+    ${mode==='file'?'':`<label class="fl">Language of this video</label><div class="qrow">${pool().map(l=>`<button class="qc ${U.langs[0]===l?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}<button class="qc" data-u="addlang">+ Other language</button></div>`}
+    ${U.langs.map(l=>{const f=U.fm[l];return`<div class="frow"><div><b>${l}</b><small>${f?(f.fq?f.fq+'p':'quality unknown')+' · '+(f.mx?'audio '+(f.track+1)+' of ':'')+mb(f.file.size)+' MB · '+esc(f.file.name):'No file chosen yet'}</small></div>${f&&f.mx?'':`<button data-u="pf" data-l="${l}">${f?'Change':'Choose file'}</button>`}</div>${f&&!f.fq?`<div class="qrow" style="margin:-2px 0 6px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-l="${l}" data-v="${q}">${q}p</button>`).join('')}</div>`:''}<div style="height:12px"></div>`}).join('')}
     ${U.langs.length?`<div class="orig">Total to upload: ${mb(total())} MB</div>`:''}
     ${mode==='file'?'':`<label class="fl">Category</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one category.</div>'}
     <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div></div>`}
@@ -1026,21 +1025,10 @@ function uploadForm(mode,sr,ctx){
   $('#vf',m).addEventListener('change',async e=>{
     const f=e.target.files[0];e.target.value='';if(!f||!U.pickL)return;
     const slot=U.pickL;U.pickL='';
+    if(!/\.(mp4|m4v|mkv|mov|webm)$/i.test(f.name)){toast('Please choose an MP4, MKV, MOV or WebM video.');return}
     let pr=null;try{pr=await probeFile(f)}catch(x){}
     const d=await detectQ(f);const fq=qFromHeight(pr&&pr.height)||d.q;
-    const isMp4=/\.(mp4|m4v)$/i.test(f.name),isMkv=/\.mkv$/i.test(f.name),nAud=(pr&&pr.audio&&pr.audio.length)||1;
-    const needCloud=slot==='__mx'?(!isMp4||nAud>1):!(isMp4||isMkv);
-    const eo=(needCloud||isMkv)?await encOk():null;
-    if(needCloud&&eo===false){toast(CLOUD_MSG);return}
-    if(isMkv&&slot!=='__mx'&&eo===false)toast('MKV is uploaded as it is. It plays only if your phone can play MKV. MP4 is the safest.');
-    if(slot==='__mx'){
-      if(!pr||!pr.audio.length){toast('Could not read the audio tracks of this file. Add each language with its own file instead.');return}
-      U.mx={file:f,fq,tracks:pr.audio.map(a=>({idx:a.idx,code:a.code,name:a.name,lang:langFromCode(a.code,a.name),keep:true}))};
-      syncMx();draw();return;
-    }
-    let track=0;
-    if(pr&&pr.audio.length>1){const k=pr.audio.findIndex(a=>langFromCode(a.code,a.name)===slot);track=k<0?0:k;if(track>0&&(await encOk())===false){toast(CLOUD_MSG);return}toast('This file has '+pr.audio.length+' audio tracks. Use "Choose one file with several languages" to add them all.')}
-    U.fm[slot]={file:f,fq,track};draw();
+    U.fm[slot]={file:f,fq,track:0};draw();
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   async function run(){
@@ -1062,7 +1050,7 @@ function uploadForm(mode,sr,ctx){
     U.langs.forEach(l=>{const v=(U.labels[l]||'').trim();if(v&&v!==l)lbl[l]=v});
     for(const g of groups){
       const ext=(g.file.name.split('.').pop()||'').toLowerCase();
-      const direct=(ext==='mp4'||ext==='m4v'||(ext==='mkv'&&cloud===false))&&g.tracks.length===1&&g.tracks[0].idx===0;
+      const direct=(ext==='mp4'||ext==='m4v'||ext==='mov'||ext==='webm'||(ext==='mkv'&&cloud===false))&&g.tracks.length===1&&g.tracks[0].idx===0;
       if(direct)epFiles[g.tracks[0].lang]={[g.fq]:{name:g.name,size:g.file.size}};
       else epSrcs.push({name:g.name,fq:g.fq,size:g.file.size,tracks:g.tracks,drop:true});
     }
@@ -1079,13 +1067,13 @@ function uploadForm(mode,sr,ctx){
     }
     const rr=await api('/api/series',{json:{id,data,cover:cv}});const sid=id||rr.id;
     await loadCatalog(true);m.remove();
-    const need=epSrcs.length>0||groups.some(g=>g.fq>720);
+    const need=cloud!==false&&(epSrcs.length>0||groups.some(g=>g.fq>720));
     if(!need){toast('Uploaded. Everyone can watch it now.');return}
     try{
       const er=await api('/api/encode',{json:{sid,s:sNo,n:nNo}});
-      toast(er.started?(epSrcs.length?'Uploaded. Preparing the languages and 720p in the cloud. It plays when ready.':'Uploaded. Making 720p in the cloud. This takes a while.'):'Uploaded. Everyone can watch it now.');
+      toast(er.started?(epSrcs.length?'Uploaded. Preparing your video in the cloud. It plays when ready.':'Uploaded. Making 720p in the cloud. This takes a while.'):'Uploaded. Everyone can watch it now.');
       if(er.started)loadCatalog(true);
-    }catch(e){toast(epSrcs.length?'Uploaded, but the cloud converter is not set up, so this video cannot play yet.':'Uploaded. Auto quality is not set up yet.')}
+    }catch(e){toast(epSrcs.length?'Uploaded, but preparing it failed. Please try again later.':'Uploaded. Everyone can watch it now.')}
   }
   m.addEventListener('click',e=>{const t=e.target.closest('[data-u]');if(!t)return;const u=t.dataset.u;
     if(u==='x'){if(U.busy&&!confirm('Upload is running. Close anyway? You can resume later.'))return;m.remove();return}
@@ -1094,14 +1082,11 @@ function uploadForm(mode,sr,ctx){
     else if(u==='mx'){U.pickL='__mx';$('#vf',m).click()}
     else if(u==='mxk'){const tr=U.mx.tracks[+t.dataset.i];tr.keep=!tr.keep;syncMx();draw()}
     else if(u==='mxl'){U.mx.tracks[+t.dataset.i].lang=t.dataset.v;syncMx();draw()}
-    else if(u==='addlang'){ask('New language name','',v=>{const l=cleanLang(v);if(!l)return;if(!LANGS.includes(l)&&!U.custom.includes(l))U.custom.push(l);if(!U.langs.includes(l))U.langs.push(l);draw()},20)}
+    else if(u==='addlang'){ask('Language name','',v=>{const l=cleanLang(v);if(!l)return;if(!LANGS.includes(l)&&!U.custom.includes(l))U.custom.push(l);setLangOne(l);draw()},20)}
     else if(u==='mxadd'){const i=+t.dataset.i;ask('New language name','',v=>{const l=cleanLang(v);if(!l)return;if(!LANGS.includes(l)&&!U.custom.includes(l))U.custom.push(l);U.mx.tracks[i].lang=l;syncMx();draw()},20)}
     else if(u==='mxq'){U.mx.fq=+t.dataset.v;syncMx();draw()}
     else if(u==='fq'){U.fm[t.dataset.l].fq=+t.dataset.v;draw()}
-    else if(u==='lg'){const l=t.dataset.v;
-      if(U.langs.includes(l)){const f=U.fm[l];if(f&&f.mx&&U.mx){const tr=U.mx.tracks.find(x=>x.idx===f.track);if(tr)tr.keep=false;syncMx()}else{U.langs=U.langs.filter(x=>x!==l);delete U.fm[l]}}
-      else U.langs.push(l);
-      draw()}
+    else if(u==='lg'){setLangOne(t.dataset.v);draw()}
     else if(u==='pickcover')$('#cf',m).click();
     else if(u==='autocover'){const tt=U.title.trim();if(!tt){toast('Type the title first');return}U.cover=cover(tt,(tt.length*47)%360,(tt.length*91+120)%360,tt.length*13+7);U.coverNew=true;draw()}
     else if(u==='cat'){const v=t.dataset.v;U.cats=U.cats.includes(v)?U.cats.filter(x=>x!==v):[...U.cats,v];draw()}
@@ -1271,8 +1256,8 @@ function drawDetail(){
   <div class="meta"><span class="st">${ic('star',14)}${s.views>0?s.views+' views':'New'}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
   <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In list':'Add to list'}</button>${D.offline?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
   <h3>Resources<small>Uploaded by ${esc(s.by||'Streamly')}</small></h3>
-  <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))}${langs.length>1?' '+ic('chev',16):''}</button>`:''}</div>
-  ${langs.length?`<div class="lbl">Episodes in ${esc(labelOf(s,D.lang,ep))}</div>`:''}<div class="chips">${chips}</div>${all}
+  <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length>1?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))} ${ic('chev',16)}</button>`:''}</div>
+  <div class="lbl">${langs.length>1?'Episodes in '+esc(labelOf(s,D.lang,ep)):'Episodes'}</div><div class="chips">${chips}</div>${all}
   <div class="dtabs"><button data-act="d-tab" data-v="for" class="${D.tab==='for'?'on':''}">For you</button><button data-act="d-tab" data-v="comm" class="${D.tab==='comm'?'on':''}">Comments</button></div>${body}`;
   if(D.tab==='comm')mountChat($('#cmwrap'),'c:'+D.id,'Add a comment','cmb');else if(MOUNT&&MOUNT.scope.indexOf('c:')===0)MOUNT=null;
 }
@@ -1451,9 +1436,8 @@ const ACT={
   'd-del':()=>{const s=cur(),n=D.n,si=D.s;sheet('Delete',[{t:'Delete this episode (EP '+n+')',v:'ep'},{t:'Delete whole series',v:'all'}],it=>{
     if(it.v==='ep')confirmDelete('Delete EP '+n+'?','Video files of this episode',()=>deleteEpisode(s.id,si,n));
     else confirmDelete('Delete "'+s.title+'"?','All seasons, episodes and video files',()=>deleteSeries(s.id))})},
-  'd-lang':()=>{if(D.offline)return;const s=cur(),ep=epObj(s,D.s,D.n);sheet('Language',seasonLangs(s,D.s).map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>setLang(it.v))},
   'd-langchip':t=>setLang(t.dataset.v),
-  'd-lang':()=>{const s=cur(),ep=epObj(s,D.s,D.n),ls=seasonLangs(s,D.s);if(ls.length<2)return;sheet('Language',ls.map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>{if(it.v!==D.lang)setLang(it.v)})},
+  'd-lang':()=>{if(D.offline)return;const s=cur(),ep=epObj(s,D.s,D.n),ls=seasonLangs(s,D.s);if(ls.length<2)return;sheet('Language',ls.map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>{if(it.v!==D.lang)setLang(it.v)})},
   'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>{if(it.v===D.s)return;D.s=it.v;const e0=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n)[0];D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()})},
   'd-chip':t=>{const v=t.dataset.v;if(v==='all'){epPopup();return}else{if(!epLangs(epObj(cur(),D.s,+v)).length){toast('This episode is still being prepared. Please check back soon.');return}D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
   'd-ep':t=>{D.n=+t.dataset.v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},
