@@ -1015,8 +1015,11 @@ function uploadForm(mode,sr,ctx){
     const slot=U.pickL;U.pickL='';
     let pr=null;try{pr=await probeFile(f)}catch(x){}
     const d=await detectQ(f);const fq=qFromHeight(pr&&pr.height)||d.q;
-    const isMp4=/\.(mp4|m4v)$/i.test(f.name),nAud=(pr&&pr.audio&&pr.audio.length)||1;
-    if((!isMp4||(slot==='__mx'&&nAud>1))&&(await encOk())===false){toast(CLOUD_MSG);return}
+    const isMp4=/\.(mp4|m4v)$/i.test(f.name),isMkv=/\.mkv$/i.test(f.name),nAud=(pr&&pr.audio&&pr.audio.length)||1;
+    const needCloud=slot==='__mx'?(!isMp4||nAud>1):!(isMp4||isMkv);
+    const eo=(needCloud||isMkv)?await encOk():null;
+    if(needCloud&&eo===false){toast(CLOUD_MSG);return}
+    if(isMkv&&slot!=='__mx'&&eo===false)toast('MKV is uploaded as it is. It plays only if your phone can play MKV. MP4 is the safest.');
     if(slot==='__mx'){
       if(!pr||!pr.audio.length){toast('Could not read the audio tracks of this file. Add each language with its own file instead.');return}
       U.mx={file:f,fq,tracks:pr.audio.map(a=>({idx:a.idx,code:a.code,name:a.name,lang:langFromCode(a.code,a.name),keep:true}))};
@@ -1041,11 +1044,12 @@ function uploadForm(mode,sr,ctx){
     }catch(e){U.busy=false;U.err=(e&&e.error)||(e&&e.offline?'Connection lost. Tap Upload to continue where it stopped.':'Upload failed. Tap Upload to continue.');draw()}
   }
   async function commit(groups){
+    const cloud=await encOk();
     const epFiles={},epSrcs=[],lbl={};
     U.langs.forEach(l=>{const v=(U.labels[l]||'').trim();if(v&&v!==l)lbl[l]=v});
     for(const g of groups){
       const ext=(g.file.name.split('.').pop()||'').toLowerCase();
-      const direct=(ext==='mp4'||ext==='m4v')&&g.tracks.length===1&&g.tracks[0].idx===0;
+      const direct=(ext==='mp4'||ext==='m4v'||(ext==='mkv'&&cloud===false))&&g.tracks.length===1&&g.tracks[0].idx===0;
       if(direct)epFiles[g.tracks[0].lang]={[g.fq]:{name:g.name,size:g.file.size}};
       else epSrcs.push({name:g.name,fq:g.fq,size:g.file.size,tracks:g.tracks,drop:true});
     }
