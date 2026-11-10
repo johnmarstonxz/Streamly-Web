@@ -338,6 +338,7 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .sfix{top:0}
 .hlogo{flex:none;display:grid;place-items:center}
 .sfix .search .sbox{min-width:0}.sfix .search .tag{flex:none;white-space:nowrap}
+.dd+.lbl{margin-top:6px}
 .stage .poster{display:none!important}
 .stage .art{filter:blur(18px) saturate(1.2) brightness(.85)}
 .stage.vready .art{filter:blur(30px) saturate(1.15) brightness(.4)}
@@ -393,7 +394,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.1';
+const APP_VERSION='3.2';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -405,9 +406,10 @@ const ratioLabel=r=>(RATIOS.find(x=>x[0]===r)||RATIOS[0])[1];
 const GENRES=[];
 const LANGS=['Hindi','English'];
 const FLANGS=['Hindi','English'];
-const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:!matchMedia('(prefers-reduced-motion: reduce)').matches,mblur:0,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9',volume:1,subLang:'',hue:265};
+const DEF={accent:'#8b5cf6',theme:'dynamic',textSize:1,anim:true,mblur:0,glow:true,defQ:'Auto',speed:1,holdSpeed:2,autoNext:true,dlQ:'ask',smooth:true,dataSaver:false,hw:true,name:'Guest',photo:'',ratio:'16:9',volume:1,subLang:'',hue:265};
 const S={kind:null,mode:'customer',tab:'home',feed:'foryou',q:'',set:Object.assign({},DEF,store.get('strm.set',{})),series:store.get('strm.cat5',[]),playlist:store.get('strm.pl',[]),downloads:store.get('strm.dl',[]),unread:0};
 const saveSet=()=>store.set('strm.set',S.set);
+if(!store.get('strm.animfix',0)){store.set('strm.animfix',1);try{if(matchMedia('(prefers-reduced-motion: reduce)').matches){S.set.anim=true;saveSet()}}catch(e){}}
 S.lang=store.get('strm.lang','');if(S.lang==='Japanese'){S.lang='';store.set('strm.lang','')}
 function homeLangs(){const x=[...FLANGS];S.series.forEach(s=>(s.langs||[]).forEach(l=>{if(l&&l!=='Japanese'&&!x.includes(l))x.push(l)}));return x}
 const langChips=()=>['',...homeLangs()].map(l=>`<button data-act="lang" data-v="${l}" class="${S.lang===l?'on':''}">${l||'All'}</button>`).join('');
@@ -477,7 +479,7 @@ function kick(why){
   app.appendChild(w);
   $('.cta',w).onclick=()=>{w.remove();kicked=false;wipe();renderGate();if(!rp){const AP=NATIVE&&plug('App');if(AP&&AP.exitApp)AP.exitApp()}};
 }
-async function syncProfile(){try{const b={name:S.set.name};if(S.set.photo)b.avatar=S.set.photo;await api('/api/profile',{json:b})}catch(e){}}
+async function syncProfile(){try{if(!S.set.name||S.set.name==='Guest')return;const b={name:S.set.name};if(S.set.photo&&/^data:/.test(S.set.photo))b.avatar=S.set.photo;await api('/api/profile',{json:b})}catch(e){}}
 let catSig='';
 async function loadCatalog(force){
   if(!TOKEN||!navigator.onLine)return;
@@ -552,7 +554,7 @@ function renderGate(msg){
     try{
       const r=await api('/api/login',{json:{key:v,device:DEVICE},noauth:true});
       TOKEN=r.token;store.set('strm.tok',TOKEN);store.set('strm.unlock',{kind:r.kind,mask:r.mask,tag:r.tag||''});S.kind=r.kind;S.tag=r.tag||'';S.mode=r.kind==='dev'?store.get('strm.mode','dev'):'customer';
-      syncProfile();renderMain();startBg();askName();
+      renderMain();startBg();initProfile();
     }catch(e){
       if(e.offline)err.textContent='Cannot reach the server. Check the address and your internet.';
       else if(e.error==='deactivated')err.textContent='This key was deactivated by the developer.';
@@ -588,6 +590,17 @@ function nameDialog(first){
   };
 }
 function askName(){if(store.get('strm.named',false))return;setTimeout(()=>nameDialog(true),700)}
+async function initProfile(){
+  try{
+    const r=await api('/api/profile');const nm=String((r&&r.name)||'').trim();
+    if(nm&&nm!=='Guest'){
+      S.set.name=nm;S.set.photo=r.avatar||'';store.set('strm.named',true);
+      if(!store.get('strm.nameAt',0)&&r.ts)store.set('strm.nameAt',r.ts);
+      saveSet();if(S.tab==='me'&&$('.prof'))drawMe();return;
+    }
+    S.set.name='Guest';S.set.photo='';saveSet();store.set('strm.named',false);setTimeout(()=>nameDialog(true),700);
+  }catch(e){askName()}
+}
 /* ---------- main shell ---------- */
 function navItems(){const a=[['home','Home','home'],['playlist','Playlist','list'],['downloads','Download','download'],['chats','Chats','chat']];if(S.mode==='dev')a.push(['upload','Upload','upload']);a.push(['me','Me','me']);return a}
 function renderMain(){
@@ -606,7 +619,7 @@ function go(t){
   drawNav();popAnim(c,'pa2');
 }
 const card=(s,badge='')=>`<div class="card" data-act="open" data-id="${s.id}"><div class="cv"><img src="${s.cover}" alt="" loading="lazy"><span class="lg">${esc((S.lang&&(s.langs||[]).includes(S.lang))?S.lang:(s.langs||[''])[0])}</span>${badge}</div><p>${esc(s.title)}</p></div>`;
-const newest=s=>s.ts&&Date.now()-s.ts<2592e5?'<span class="nw">NEW</span>':'';
+const newest=s=>s.ts&&Date.now()-s.ts<1728e5?'<span class="nw">NEW</span>':'';
 function feedList(){
   let l=[...S.series];const q=S.q.trim().toLowerCase();
   if(q)return l.filter(s=>s.title.toLowerCase().includes(q)||(s.cats||[]).some(c=>c.toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
@@ -1258,8 +1271,8 @@ function drawDetail(){
   <div class="meta"><span class="st">${ic('star',14)}${s.views>0?s.views+' views':'New'}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
   <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In list':'Add to list'}</button>${D.offline?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
   <h3>Resources<small>Uploaded by ${esc(s.by||'Streamly')}</small></h3>
-  <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button></div>
-  ${langs.length?`<div class="lbl">Language</div><div class="chips langrow">${lchips}</div><div class="lbl">Episodes in ${esc(labelOf(s,D.lang,ep))}</div>`:''}<div class="chips">${chips}</div>${all}
+  <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))}${langs.length>1?' '+ic('chev',16):''}</button>`:''}</div>
+  ${langs.length?`<div class="lbl">Episodes in ${esc(labelOf(s,D.lang,ep))}</div>`:''}<div class="chips">${chips}</div>${all}
   <div class="dtabs"><button data-act="d-tab" data-v="for" class="${D.tab==='for'?'on':''}">For you</button><button data-act="d-tab" data-v="comm" class="${D.tab==='comm'?'on':''}">Comments</button></div>${body}`;
   if(D.tab==='comm')mountChat($('#cmwrap'),'c:'+D.id,'Add a comment','cmb');else if(MOUNT&&MOUNT.scope.indexOf('c:')===0)MOUNT=null;
 }
@@ -1341,8 +1354,7 @@ async function doUpdate(){
 }
 function showUpdate(j){
   updShown=true;const force=!!j.force;
-  const hint=NATIVE?'The download page will open. Install the new version from there.':(location.protocol==='file:'?'Download the latest version from our website to update this app.':'Streamly will restart to apply the update.');
-  const w=el(`<div class="shw ${force?'lock':''}" style="z-index:950"><div class="shb"></div><div class="sh" style="text-align:center;padding:24px 20px calc(20px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:14px 0 4px;font-size:1.2rem">A new version is available</h4><p class="sub" style="padding:0 0 6px;font-size:.92rem">Streamly ${esc(j.version)} is ready. ${esc(j.notes||'It includes improvements and fixes to keep everything running smoothly.')}</p><p class="sub" style="padding:0 0 16px;font-size:.8rem;opacity:.8">${esc(hint)}</p><button class="cta" style="width:100%" data-i="up">Update now</button>${force?'':'<button class="btn2" style="width:100%;margin-top:10px" data-i="later">Later</button>'}</div></div>`);
+  const w=el(`<div class="shw ${force?'lock':''}" style="z-index:950"><div class="shb"></div><div class="sh" style="text-align:center;padding:24px 20px calc(20px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:14px 0 4px;font-size:1.2rem">New update available</h4><p class="sub" style="padding:0 0 18px;font-size:.92rem">A new version of Streamly is ready. Update now to keep everything running smoothly.</p><button class="cta" style="width:100%" data-i="up">Update now</button>${force?'':'<button class="btn2" style="width:100%;margin-top:10px" data-i="later">Later</button>'}</div></div>`);
   app.appendChild(w);
   w.addEventListener('click',e=>{
     if(e.target.classList.contains('shb')&&!force){store.set('strm.updSkip',j.version);store.set('strm.updUntil',Date.now()+864e5);w.remove();updShown=false;return}
@@ -1441,6 +1453,7 @@ const ACT={
     else confirmDelete('Delete "'+s.title+'"?','All seasons, episodes and video files',()=>deleteSeries(s.id))})},
   'd-lang':()=>{if(D.offline)return;const s=cur(),ep=epObj(s,D.s,D.n);sheet('Language',seasonLangs(s,D.s).map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>setLang(it.v))},
   'd-langchip':t=>setLang(t.dataset.v),
+  'd-lang':()=>{const s=cur(),ep=epObj(s,D.s,D.n),ls=seasonLangs(s,D.s);if(ls.length<2)return;sheet('Language',ls.map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>{if(it.v!==D.lang)setLang(it.v)})},
   'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>{if(it.v===D.s)return;D.s=it.v;const e0=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n)[0];D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()})},
   'd-chip':t=>{const v=t.dataset.v;if(v==='all'){epPopup();return}else{if(!epLangs(epObj(cur(),D.s,+v)).length){toast('This episode is still being prepared. Please check back soon.');return}D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
   'd-ep':t=>{D.n=+t.dataset.v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},
@@ -1481,7 +1494,7 @@ addEventListener('online',offUI);addEventListener('offline',offUI);
 /* ---------- boot ---------- */
 applySettings();splash();wake();
 if(!isApp())setTimeout(installPopup,3800);
-setTimeout(checkUpdate,6000);setInterval(checkUpdate,600000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
+setTimeout(checkUpdate,6000);setInterval(checkUpdate,60000);addEventListener('focus',()=>checkUpdate());document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 loadConfig().then(()=>{
   const un=store.get('strm.unlock',null);
   if(TOKEN&&un&&un.kind){S.kind=un.kind;S.tag=un.tag||'';S.mode=un.kind==='dev'?store.get('strm.mode','dev'):'customer';renderMain();startBg();pollMe()}else renderGate();
