@@ -339,6 +339,8 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .hlogo{flex:none;display:grid;place-items:center}
 .sfix .search .sbox{min-width:0}.sfix .search .tag{flex:none;white-space:nowrap}
 .dd+.lbl{margin-top:6px}
+.player.sbar .ctop{padding-top:30px}
+.card p{display:block;-webkit-line-clamp:unset;overflow:visible;overflow-wrap:anywhere}
 .stage video,.stage.vready video{opacity:1!important;transition:none}
 .stage .poster{display:none!important}
 .stage .art{filter:blur(18px) saturate(1.2) brightness(.85)}
@@ -812,7 +814,7 @@ function editSeries(sr,onDone){
   const feedOk=()=>E.cats.some(c=>FEEDCATS.includes(c));
   const can=()=>E.title.trim()&&feedOk()&&!E.busy;
   const draw=()=>{
-    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="edt" value="${esc(E.title)}" maxlength="40">
+    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="edt" value="${esc(E.title)}" maxlength="30">
     <label class="fl">Year</label><input class="inp" id="edy" inputmode="numeric" value="${esc(E.year)}" maxlength="4">
     <label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${E.cover}')"></div><div class="stack"><button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button></div></div>
     <label class="fl">Categories</label><div class="qrow">${catChips(E.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
@@ -1005,7 +1007,7 @@ function uploadForm(mode,sr,ctx){
     U.mx.tracks.forEach(t=>{if(t.keep&&t.lang){U.fm[t.lang]={file:U.mx.file,fq:U.mx.fq,track:t.idx,mx:true};if(!U.langs.includes(t.lang))U.langs.push(t.lang)}});
   };
   const draw=()=>{
-    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="40">
+    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="30">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
     ${mode==='file'?'':`<label class="fl">Language of this video</label><div class="qrow">${pool().map(l=>`<button class="qc ${U.langs[0]===l?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}<button class="qc" data-u="addlang">+ Other language</button></div>`}
@@ -1175,12 +1177,12 @@ function nativeFs(on){
   try{
     if(!NATIVE)return;
     const IM=plug('Immersive'),SO=plug('ScreenOrientation'),SB=plug('StatusBar');
-    const old=()=>{try{if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.hide().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
+    const old=()=>{try{if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
     try{const p=on?IM.enter():IM.exit();if(p&&p.catch)p.catch(old)}catch(e){old()}
   }catch(e){}
 }
-function barsSync(){
-  const visible=false;if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;
+function barsSync(visible){
+  if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;visible=!!visible;pl.classList.toggle('sbar',visible);
   const old=()=>{try{const SB=plug('StatusBar');(visible?SB.show():SB.hide()).catch(()=>{})}catch(e){}};
   try{const p=plug('Immersive').bars({visible});if(p&&p.catch)p.catch(old)}catch(e){old()}
 }
@@ -1200,7 +1202,7 @@ function fitRot(){const pl=$('#pl');if(!pl)return;pl.classList.toggle('rot',pl.c
 addEventListener('resize',fitRot);addEventListener('orientationchange',()=>setTimeout(fitRot,150));
 function fsToggle(on){
   const pl=$('#pl');if(!pl)return;const want=on===undefined?!pl.classList.contains('fs'):on;
-  pl.classList.toggle('fs',want);$('#detail').classList.toggle('isfs',want);$('#fsb').innerHTML=ic(want?'fsx':'fs',20);fitRot();nativeFs(want);popAnim($('#stage'));
+  pl.classList.toggle('fs',want);if(!want)pl.classList.remove('sbar');$('#detail').classList.toggle('isfs',want);$('#fsb').innerHTML=ic(want?'fsx':'fs',20);fitRot();nativeFs(want);popAnim($('#stage'));
   try{if(NATIVE){}else if(want){const r=document.documentElement.requestFullscreen;const pr=r?r.call(document.documentElement):Promise.reject();pr.then(()=>screen.orientation.lock('landscape')).catch(()=>{}).then(()=>setTimeout(fitRot,300))}else{document.fullscreenElement&&document.exitFullscreen();screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}}catch(e){}
   showCtl();
 }
@@ -1399,12 +1401,13 @@ window.__streamlyBack=()=>{let r;try{r=handleBack()}catch(e){r='exit'}if(r==='ex
   }
 }
 /* ---------- actions ---------- */
-let lpT=0;const lp={t:0,x:0,y:0};
+let lpT=0;const lp={t:0,x:0,y:0,fired:false,swallow:0};
 document.addEventListener('pointerdown',e=>{
   clearTimeout(lp.t);const msg=e.target.closest('.msg'),cd=e.target.closest('.card[data-act="open"]');if(!msg&&!cd)return;
-  lp.x=e.clientX;lp.y=e.clientY;lp.t=setTimeout(()=>{lpT=Date.now();if(msg)msgMenu(+msg.dataset.mid);else cardMenu(+cd.dataset.id)},520);
+  lp.x=e.clientX;lp.y=e.clientY;lp.t=setTimeout(()=>{lpT=Date.now();lp.fired=true;if(msg)msgMenu(+msg.dataset.mid);else cardMenu(+cd.dataset.id)},520);
 },{passive:true});
-['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(lp.t)));
+['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,()=>{clearTimeout(lp.t);if(lp.fired){lp.fired=false;lp.swallow=Date.now()+600}}));
+document.addEventListener('click',e=>{if(lp.swallow&&Date.now()<lp.swallow){e.stopPropagation();e.preventDefault()}lp.swallow=0},true);
 document.addEventListener('pointermove',e=>{if(lp.t&&(Math.abs(e.clientX-lp.x)>10||Math.abs(e.clientY-lp.y)>10))clearTimeout(lp.t)},{passive:true});
 document.addEventListener('scroll',()=>clearTimeout(lp.t),true);
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.msg,.card'))e.preventDefault()});

@@ -39,7 +39,8 @@ details{width:100%}summary{cursor:pointer;color:var(--tx2);font-size:.85rem;marg
 </div>
 <script>
 (()=>{
-const BASE='https://github.com/johnmarstonxz/Streamly-Downloads/releases/latest/download/';
+const REL_PAGE='https://github.com/johnmarstonxz/Streamly-Downloads/releases/latest';
+const REL_API='https://api.github.com/repos/johnmarstonxz/Streamly-Downloads/releases/latest';
 const ua=navigator.userAgent||'',plat=navigator.platform||'';
 const isAndroid=/Android/i.test(ua),isIOS=/iPhone|iPad|iPod/i.test(ua)||(plat==='MacIntel'&&navigator.maxTouchPoints>1);
 const isWin=/Windows/i.test(ua),isMac=!isIOS&&/Mac/i.test(ua),isLinux=!isAndroid&&/Linux|X11/i.test(ua);
@@ -54,14 +55,24 @@ const ITEMS=[
 const web={id:'web',ico:'🌐',name:'Use it in your browser',file:null,btn:'Open Streamly',note:'No download needed. In Chrome or Edge you can also install it from the address bar.'};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function card(it,rec){
-  const link=it.file?`<a class="btn" href="${BASE+it.file}" download>${esc(it.btn)}</a>`:(it.id==='web'?`<a class="btn alt" href="./">${esc(it.btn)}</a>`:'');
-  const extra=it.extra?`<details><summary>${esc(it.extra.label)}</summary><p>${esc(it.extra.text)}</p><p><a class="btn alt" href="${BASE+it.extra.file}" download>Download .ipa</a></p></details>`:'';
+  const link=it.file?`<a class="btn" href="${REL_PAGE}" data-file="${it.file}">${esc(it.btn)}</a>`:(it.id==='web'?`<a class="btn alt" href="./">${esc(it.btn)}</a>`:'');
+  const extra=it.extra?`<details><summary>${esc(it.extra.label)}</summary><p>${esc(it.extra.text)}</p><p><a class="btn alt" href="${REL_PAGE}" data-file="${it.extra.file}">Download .ipa</a></p></details>`:'';
   return `<div class="card ${rec?'rec':''}"><div class="ico">${it.ico||'📱'}</div><div class="info">${rec?'<span class="tag">Recommended for your device</span>':''}<b>${esc(it.name)}</b><small>${esc(it.note)}</small></div>${link}${extra}</div>`;
 }
 let recId=isAndroid?'android':isIOS?'ios':isWin?'win':isMac?'macarm':isLinux?'linux':'web';
 const rec=ITEMS.find(i=>i.id===recId)||web;
 document.getElementById('rec').innerHTML=card(rec,true);
 document.getElementById('list').innerHTML=[...ITEMS.filter(i=>i.id!==rec.id),web].map(i=>card(i,false)).join('');
+const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+fetch(REL_API,{headers:{Accept:'application/vnd.github+json'}}).then(r=>r.json()).then(rel=>{
+  const assets=(rel&&rel.assets)||[];let ver='';
+  document.querySelectorAll('a[data-file]').forEach(a=>{
+    const f=a.dataset.file,i=f.lastIndexOf('.');const re=new RegExp('^'+escRe(f.slice(0,i))+'(-v[0-9][0-9.]*)?\\.'+escRe(f.slice(i+1))+'$','i');
+    const as=assets.find(x=>re.test(x.name));
+    if(as){a.href=as.browser_download_url;const m=/-v([0-9][0-9.]*)\.[A-Za-z]+$/.exec(as.name);if(m&&!ver)ver=m[1]}
+  });
+  if(ver)document.getElementById('ver').textContent='Latest version '+ver;
+}).catch(()=>{});
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j&&j.version)document.getElementById('ver').textContent='Latest version '+j.version}).catch(()=>{});
 })();
 </script>
