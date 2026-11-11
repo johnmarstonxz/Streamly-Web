@@ -339,6 +339,7 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .hlogo{flex:none;display:grid;place-items:center}
 .sfix .search .sbox{min-width:0}.sfix .search .tag{flex:none;white-space:nowrap}
 .dd+.lbl{margin-top:6px}
+.stage video,.stage.vready video{opacity:1!important;transition:none}
 .stage .poster{display:none!important}
 .stage .art{filter:blur(18px) saturate(1.2) brightness(.85)}
 .stage.vready .art{filter:blur(30px) saturate(1.15) brightness(.4)}
@@ -394,7 +395,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.3';
+const APP_VERSION='3.4';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -1209,7 +1210,7 @@ function bindPlayer(){
   const st=$('#stage'),v=V();let ht=0,held=false,last=0,tt=0;
   ['timeupdate','play','pause','durationchange','loadedmetadata','seeked'].forEach(ev=>v.addEventListener(ev,pui));v.addEventListener('loadedmetadata',applyRatio);v.addEventListener('timeupdate',()=>histPut(false));v.addEventListener('pause',()=>histPut(true));
   v.addEventListener('play',()=>showCtl());v.addEventListener('pause',()=>showCtl());
-  v.addEventListener('loadeddata',()=>{$('#stage').classList.add('vready')});v.addEventListener('playing',()=>{$('#stage').classList.add('vready')});
+  const rdy=()=>{const s=$('#stage');s&&s.classList.add('vready')};v.addEventListener('loadeddata',rdy);v.addEventListener('playing',rdy);v.addEventListener('canplay',rdy);v.addEventListener('timeupdate',()=>{if(v.currentTime>0.15)rdy()});
   v.addEventListener('waiting',()=>{if(!v.paused&&v.readyState>=1)PL.stalls.push(Date.now());showBuf('',350)});clearInterval(PL.abrT);PL.abrT=setInterval(abrTick,4000);v.addEventListener('playing',hideBuf);v.addEventListener('canplay',hideBuf);v.addEventListener('ended',ended);
   v.addEventListener('error',()=>{if(!D)return;hideBuf();toast(navigator.onLine||D.offline?'This video could not be played':'No internet. Only downloaded videos can play.')});
   const skip=n=>{const x=V();x.currentTime=Math.max(0,Math.min(x.duration||1e9,x.currentTime+n));fx(n>0?'r':'l');showCtl()};PL.skip=skip;
