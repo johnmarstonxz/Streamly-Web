@@ -896,19 +896,31 @@ async function uploadFile(file,onProgress){
   const rk='strm.up.'+file.name+'.'+file.size;let st=store.get(rk,null),have=[];
   if(st){try{have=await api('/api/upload/parts?fileId='+encodeURIComponent(st.fileId))}catch(e){if(e&&e.offline)throw e;st=null;have=[]}}
   if(!st){const r=await api('/api/upload/start',{json:{name:file.name,size:file.size}});st={fileId:r.fileId,fileName:r.fileName};store.set(rk,st);have=[]}
-  const CHN=file.size<=8388608?5000000:8388608,total=Math.ceil(file.size/CHN),sha1s=[];
-  for(let n=1;n<=total;n++){
-    const buf=await file.slice((n-1)*CHN,n*CHN).arrayBuffer();const sha=hex(await crypto.subtle.digest('SHA-1',buf));
-    const ex=have.find(p=>p.n===n);
-    if(ex&&ex.sha1===sha){sha1s.push(sha);onProgress((n-1)*CHN+buf.byteLength);continue}
-    let ok=false,lastErr=null;
-    for(let t=0;t<6&&!ok;t++){
-      try{await putPart(st.fileId,n,buf,sha,l=>onProgress((n-1)*CHN+l));ok=true}
-      catch(e){lastErr=e;if(e&&e.status===403){kick();throw e}if(e&&e.status&&e.status<500&&e.status!==408)throw e;await new Promise(r=>setTimeout(r,2000*(t+1)))}
+  // bigger parts, and 3 parts travel at the same time, so the connection is never left waiting
+  const CHN=file.size<=8388608?5000000:Math.max(5000000,Math.min(16777216,Math.ceil(file.size/4/1048576)*1048576));
+  const total=Math.ceil(file.size/CHN),sha1s=new Array(total),loaded=new Array(total).fill(0);
+  const report=()=>onProgress(loaded.reduce((a,b)=>a+b,0));
+  let next=0,fail=null;
+  const lane=async()=>{
+    while(!fail){
+      const i=next++;if(i>=total)return;
+      const n=i+1,blob=file.slice(i*CHN,(i+1)*CHN);
+      try{
+        const sha=hex(await crypto.subtle.digest('SHA-1',await blob.arrayBuffer()));
+        const ex=have.find(p=>p.n===n);
+        if(ex&&ex.sha1===sha){sha1s[i]=sha;loaded[i]=blob.size;report();continue}
+        let ok=false,lastErr=null;
+        for(let t=0;t<6&&!ok&&!fail;t++){
+          try{await putPart(st.fileId,n,blob,sha,l=>{loaded[i]=l;report()});ok=true}
+          catch(e){lastErr=e;if(e&&e.status===403){kick();throw e}if(e&&e.status&&e.status<500&&e.status!==408)throw e;await new Promise(r=>setTimeout(r,2000*(t+1)))}
+        }
+        if(!ok)throw lastErr||{error:'Upload failed'};
+        sha1s[i]=sha;loaded[i]=blob.size;report();
+      }catch(e){fail=fail||e;return}
     }
-    if(!ok)throw lastErr||{error:'Upload failed'};
-    sha1s.push(sha);
-  }
+  };
+  await Promise.all(Array.from({length:Math.min(3,total)},lane));
+  if(fail)throw fail;
   await api('/api/upload/finish',{json:{fileId:st.fileId,sha1s}});store.del(rk);
   return{name:st.fileName};
 }
