@@ -339,6 +339,7 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .hlogo{flex:none;display:grid;place-items:center}
 .sfix .search .sbox{min-width:0}.sfix .search .tag{flex:none;white-space:nowrap}
 .dd+.lbl{margin-top:6px}
+.stage.closing .art,.stage.closing .poster{display:none!important}.stage.closing{background:#000}
 .player.sbar .ctop{padding-top:30px}
 .card p{display:block;-webkit-line-clamp:unset;overflow:visible;overflow-wrap:anywhere}
 .stage video,.stage.vready video{opacity:1!important;transition:none}
@@ -397,7 +398,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.4';
+const APP_VERSION='3.5';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -755,7 +756,7 @@ function drawMe(){
     if(ty==='hue')return`<div class="row hrow"><span>${t}</span><input type="range" class="hue" id="hue" min="0" max="360" value="${st.hue||265}" aria-label="Custom theme colour"></div>`;
     if(ty==='tg')return`<div class="row" data-act="tg" data-k="${k}"><span>${t}</span><i class="sw ${st[k]?'on':''}"></i></div>`;
     if(ty==='pick')return`<div class="row" data-act="pk" data-k="${k}"><span>${t}</span><em>${esc(setVal(k,o))} ›</em></div>`;
-    if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
+    if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION+(NATIVE?(HELPER===true?' | fullscreen ready':HELPER===false?' | fullscreen helper missing':''):''):mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
   <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
@@ -1120,7 +1121,17 @@ function keysModal(){
 let D=null;const PL={q:0,base:1,hideT:0,bufT:0,lpT:0,ratio:S.set.ratio||'16:9',resume:0,sub:'',auto:true,stalls:[],lastSwitch:0,good:0,abrT:0};
 const cur=()=>ser(D.id);
 const V=()=>$('#vid');
-function playerHTML(){const s=cur();return`<div class="stage" id="stage"><div class="art" style="background-image:url('${s.cover}')"></div><img class="poster" src="${s.cover}" alt=""><video id="vid" playsinline preload="auto"></video><div class="fx l" id="fxl">« 10s</div><div class="fx r" id="fxr">10s »</div><div class="hold" id="hold">${ic('speed',16)}<span id="holdv">2×</span></div>
+const TINY={};
+function tinyCover(src){
+  return new Promise(res=>{
+    if(!src)return res('');if(TINY[src])return res(TINY[src]);
+    const im=new Image();im.crossOrigin='anonymous';
+    im.onload=()=>{try{const w=20,h=Math.max(8,Math.round(w*(im.naturalHeight||1)/(im.naturalWidth||1)));const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(im,0,0,w,h);TINY[src]=c.toDataURL('image/jpeg',.7);res(TINY[src])}catch(e){res('')}};
+    im.onerror=()=>res('');im.src=src;
+  });
+}
+function paintArt(){const s=cur();if(!s)return;tinyCover(s.cover).then(u=>{const a=document.querySelector('#stage .art');if(a&&!a.style.backgroundImage)a.style.backgroundImage=u?`url(${u})`:`url('${s.cover}')`})}
+function playerHTML(){const s=cur();return`<div class="stage" id="stage"><div class="art"></div><img class="poster" src="${s.cover}" alt=""><video id="vid" playsinline preload="auto"></video><div class="fx l" id="fxl">« 10s</div><div class="fx r" id="fxr">10s »</div><div class="hold" id="hold">${ic('speed',16)}<span id="holdv">2×</span></div>
 <div class="ctl show" id="ctl"><div class="ctop"><button class="ib" data-act="p-back" aria-label="Back">${ic('back',22)}</button><span class="ctitle" id="ctitle"></span></div>
 <div class="cmid"><button class="ib sk" data-act="p-skip" data-v="-10">−10</button><button class="ib big" data-act="p-play" id="ppb" aria-label="Play or pause">${ic('play',26)}</button><button class="ib sk" data-act="p-skip" data-v="10">+10</button></div>
 <div class="cbot"><div class="seekrow"><span id="tcur">0:00</span><input type="range" class="seek" id="seek" min="0" max="1" value="0" step="1" aria-label="Seek"><span id="tdur">0:00</span><button class="qbtn" data-act="p-q" id="qbtn" aria-label="Quality"></button><span class="volw"><button class="ib" data-act="p-vol" id="volb" aria-label="Volume">${ic(S.set.volume===0?'mute':'vol',20)}</button><div class="volp"><input type="range" id="vol" min="0" max="1" step="0.05" value="${S.set.volume}" aria-label="Volume"></div></span><button class="ib" data-act="p-fs" id="fsb" aria-label="Fullscreen">${ic('fs',20)}</button></div>
@@ -1189,8 +1200,11 @@ function nativeFs(on){
   try{
     if(!NATIVE)return;
     const IM=plug('Immersive'),SO=plug('ScreenOrientation'),SB=plug('StatusBar');
-    const old=()=>{try{if(on){SO.lock({orientation:'landscape'}).catch(()=>{});SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SO.unlock().catch(()=>{});SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
-    try{const p=on?IM.enter():IM.exit();if(p&&p.catch)p.catch(old)}catch(e){old()}
+    const so=()=>{try{(on?SO.lock({orientation:'landscape'}):SO.unlock()).catch(()=>{})}catch(e){}};
+    const sb=()=>{try{if(on){SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
+    try{const p=on?IM.enter():IM.exit();if(p&&p.catch)p.catch(()=>{sb()})}catch(e){sb()}
+    so();
+    if(on)setTimeout(()=>{const pl=$('#pl');if(pl&&pl.classList.contains('fs')&&innerHeight>innerWidth){so();try{IM.enter().catch(()=>{})}catch(e){}}},800);
   }catch(e){}
 }
 function barsSync(visible){
@@ -1240,7 +1254,7 @@ function bindPlayer(){
 }
 function closeDetail(now){
   const d=$('#detail');if(!d)return;try{histPut(true)}catch(e){}clearInterval(PL.abrT);clearTimeout(PL.hideT);clearTimeout(PL.bufT);
-  const v=V();if(v){try{v.pause();v.removeAttribute('src');v.load()}catch(e){}}
+  const v=V();if(v){try{v.pause()}catch(e){}const clr=()=>{try{v.removeAttribute('src');v.load()}catch(e){}};if(now)clr();else{const sg=$('#stage');sg&&sg.classList.add('closing');setTimeout(clr,260)}}
   if(D&&D.localUrl)try{URL.revokeObjectURL(D.localUrl)}catch(e){}
   try{document.fullscreenElement&&document.exitFullscreen();if(NATIVE)nativeFs(false);screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch(e){}
   if(MOUNT&&MOUNT.scope.indexOf('c:')===0)MOUNT=null;
@@ -1255,7 +1269,7 @@ function openDetail(id,o={}){
   D={id,s,n,lang:o.lang&&ls.includes(o.lang)?o.lang:(S.lang&&ls.includes(S.lang)?S.lang:ls[0]),tab:'for',chip:n,offline:!!o.localUrl,q:o.q||null,localUrl:o.localUrl||''};
   const d=el(`<div class="detail ${D.offline?'off':''}" id="detail"><div class="player" id="pl"></div><div class="dscroll" id="dsc"></div></div>`);
   if(o.from){try{const r=o.from.getBoundingClientRect(),a=app.getBoundingClientRect();d.style.setProperty('--ox',(r.left-a.left+r.width/2)+'px');d.style.setProperty('--oy',(r.top-a.top+r.height/2)+'px')}catch(e){}}
-  app.appendChild(d);$('#pl').innerHTML=playerHTML();bindPlayer();drawDetail();PL.resume=o.resume||0;PL.auto=S.set.defQ==='Auto';PL.stalls=[];PL.good=0;loadEp();if(o.auto&&o.resume)toast('Continuing from '+fmt(o.resume));
+  app.appendChild(d);$('#pl').innerHTML=playerHTML();paintArt();bindPlayer();drawDetail();PL.resume=o.resume||0;PL.auto=S.set.defQ==='Auto';PL.stalls=[];PL.good=0;loadEp();if(o.auto&&o.resume)toast('Continuing from '+fmt(o.resume));
   if(!D.offline&&navigator.onLine)api('/api/series/'+id+'/view',{method:'POST'}).catch(()=>{});
 }
 function drawDetail(){
@@ -1396,6 +1410,8 @@ function handleBack(){
   exitArm=Date.now();toast('Press back again to exit');return true;
 }
 let leaving=false;
+let HELPER=null;
+if(NATIVE){try{plug('Immersive').info().then(r=>{HELPER=!!(r&&r.v);if(S.tab==='me'&&$('.prof'))drawMe()}).catch(()=>{HELPER=false;if(S.tab==='me'&&$('.prof'))drawMe()})}catch(e){HELPER=false}}
 window.__streamlyBack=()=>{let r;try{r=handleBack()}catch(e){r='exit'}if(r==='exit'){leaving=true;return'exit'}return'ok'};
 {
   let armed=false;
