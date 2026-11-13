@@ -339,7 +339,21 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .hlogo{flex:none;display:grid;place-items:center}
 .sfix .search .sbox{min-width:0}.sfix .search .tag{flex:none;white-space:nowrap}
 .dd+.lbl{margin-top:6px}
-.stage.closing .art,.stage.closing .poster{display:none!important}.stage.closing{background:#000}
+.stage.closing .art,.stage.closing .poster{display:none!important}
+/* centred glass popup for Season and Download */
+.shw.ctr{justify-content:center;align-items:center}
+.shw.ctr .shb{background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.shw.ctr .sh{width:min(88%,380px);max-width:none;max-height:72%;margin:0;padding:16px 8px;border-radius:24px;background:linear-gradient(160deg,rgba(var(--acc-rgb),.32),rgba(10,8,18,.82) 42%);border:1px solid rgba(255,255,255,.13);-webkit-backdrop-filter:blur(22px) saturate(1.3);backdrop-filter:blur(22px) saturate(1.3);box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 40px rgba(var(--acc-rgb),.25);color:#fff;overflow-y:auto;animation:popc .26s cubic-bezier(.2,.9,.3,1)}
+@keyframes popc{from{transform:scale(.92);opacity:0}}
+.shw.ctr.out .sh{transform:scale(.94);opacity:0;transition:transform .2s,opacity .2s}
+.shw.ctr .sh h4{display:block;margin:0 14px 10px;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:600}
+.shw.ctr .sh .grab{display:none}
+.shw.ctr .sh>.sub{padding:0 14px 8px;color:rgba(255,255,255,.62);font-size:.78rem}
+.shw.ctr .shi{border:0;padding:13px 16px;margin:2px 0;border-radius:14px;font-size:1.02rem;color:#fff;transition:background .18s,transform .18s}
+.shw.ctr .shi:active{transform:scale(.97)}
+.shw.ctr .shi.on{background:rgba(var(--acc-rgb),.42);box-shadow:inset 3px 0 0 var(--acc);font-weight:600}
+.shw.ctr .shi em{font-size:.72rem;color:rgba(255,255,255,.62)}
+.stage.closing{background:#000}
 .player.sbar .ctop{padding-top:30px}
 html.and{padding-top:0!important;padding-bottom:0!important}
 .player.fs .stage{background:#000}
@@ -403,7 +417,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.7';
+const APP_VERSION='3.8';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -440,8 +454,9 @@ function autoTarget(){const c=navigator.connection,d=(c&&c.downlink)||5;return d
 function pickQ(av,pref){const a=[...av].sort((x,y)=>x-y);if(!a.length)return 0;let p=pref;if(p==='Auto'||p==='ask')p=autoTarget();p=+p;const le=a.filter(x=>x<=p);return le.length?le[le.length-1]:a[0]}
 const host=()=>$('#pl.fs')||app;
 function toast(t){$$('.toast').forEach(x=>x.remove());const n=el(`<div class="toast">${esc(t)}</div>`);host().appendChild(n);setTimeout(()=>n.remove(),2300)}
-function sheet(title,items,cb,sub){
-  const w=el(`<div class="shw"><div class="shb"></div><div class="sh"><div class="grab"></div><h4>${esc(title)}</h4>${sub?`<p class="sub">${esc(sub)}</p>`:''}${items.map((it,i)=>`<button class="shi ${it.on?'on':''}" data-i="${i}"><span>${esc(it.t)}</span>${it.s?`<em>${esc(it.s)}</em>`:''}${it.on?ic('check',18):''}</button>`).join('')}</div></div>`);
+function sheet(title,items,cb,sub,center){
+  const ctr=!!center&&!document.querySelector('#pl.fs');
+  const w=el(`<div class="shw${ctr?' ctr':''}"><div class="shb"></div><div class="sh"><div class="grab"></div><h4>${esc(title)}</h4>${sub?`<p class="sub">${esc(sub)}</p>`:''}${items.map((it,i)=>`<button class="shi ${it.on?'on':''}" data-i="${i}"><span>${esc(it.t)}</span>${it.s?`<em>${esc(it.s)}</em>`:''}${it.on?ic('check',18):''}</button>`).join('')}</div></div>`);
   host().appendChild(w);const close=()=>{w.classList.add('out');setTimeout(()=>w.remove(),200)};
   w.addEventListener('click',e=>{const b=e.target.closest('.shi');if(b){close();cb&&cb(items[+b.dataset.i])}else if(e.target.classList.contains('shb'))close()});
 }
@@ -816,19 +831,20 @@ function editCats(sr){
 }
 function editSeries(sr,onDone){
   const m=modal('Edit details'),b=$('.mbody',m);
-  const E={title:sr.title,year:String(sr.year||new Date().getFullYear()),cover:sr.cover,coverNew:false,cats:normCats(sr.cats),done:sr.seasons.map(s=>!!s.done),busy:false};
+  const E={title:sr.title,year:String(sr.year||new Date().getFullYear()),cover:sr.cover,coverNew:false,star:sr.star||'',cats:normCats(sr.cats),done:sr.seasons.map(s=>!!s.done),busy:false};
   const feedOk=()=>E.cats.some(c=>FEEDCATS.includes(c));
   const can=()=>E.title.trim()&&feedOk()&&!E.busy;
   const draw=()=>{
-    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="edt" value="${esc(E.title)}" maxlength="30">
+    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="edt" value="${esc(E.title)}" maxlength="150">
     <label class="fl">Year</label><input class="inp" id="edy" inputmode="numeric" value="${esc(E.year)}" maxlength="4">
+    <label class="fl">Star text (shown instead of views)</label><input class="inp" id="eds" maxlength="100" value="${esc(E.star)}" placeholder="Leave empty to show views">
     <label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${E.cover}')"></div><div class="stack"><button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button></div></div>
     <label class="fl">Categories</label><div class="qrow">${catChips(E.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one of For you, Trending, Ongoing or Movie.</div>'}
     <label class="fl">Seasons</label><div class="box">${E.done.map((d,i)=>`<div class="row" data-u="sd" data-i="${i}"><span>Season ${i+1} complete</span><i class="sw ${d?'on':''}"></i></div>`).join('')}</div>
     <button class="cta" style="width:100%;margin-top:22px" data-u="save" ${can()?'':'disabled'}>${E.busy?'Saving…':'Save changes'}</button>`;
   };
   draw();
-  m.addEventListener('input',e=>{if(e.target.id==='edt')E.title=e.target.value;else if(e.target.id==='edy')E.year=e.target.value;else return;const g=$('[data-u=save]',m);if(g)g.disabled=!can()});
+  m.addEventListener('input',e=>{if(e.target.id==='edt')E.title=e.target.value;else if(e.target.id==='edy')E.year=e.target.value;else if(e.target.id==='eds'){E.star=e.target.value;return}else return;const g=$('[data-u=save]',m);if(g)g.disabled=!can()});
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);E.cover=c.toDataURL('image/jpeg',.82);E.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t||E.busy)return;const u=t.dataset.u;
     if(u==='x')m.remove();
@@ -840,7 +856,7 @@ function editSeries(sr,onDone){
       E.busy=true;draw();
       try{
         const data=clone(ser(sr.id));['id','ts','views','cover'].forEach(k=>delete data[k]);
-        data.title=E.title.trim();data.year=parseInt(E.year,10)||data.year;data.cats=E.cats;data.seasons.forEach((s,i)=>{s.done=E.done[i]});
+        data.title=E.title.trim();data.year=parseInt(E.year,10)||data.year;if(E.star.trim())data.star=E.star.trim().slice(0,100);else delete data.star;data.cats=E.cats;data.seasons.forEach((s,i)=>{s.done=E.done[i]});
         await api('/api/series',{json:{id:sr.id,data,cover:E.coverNew?E.cover:null}});
         await loadCatalog(true);m.remove();toast('Changes saved');onDone&&onDone();
       }catch(er){E.busy=false;draw();toast((er&&er.error)||'Could not save. Check your internet.')}
@@ -1009,7 +1025,7 @@ function uploadForm(mode,sr,ctx){
   const WANT=[720];
   const first0=(sr&&sr.langs&&sr.langs.find(l=>LANGS.includes(l)))||'Hindi';
   const ep0=mode==='file'&&sr?epObj(sr,ctx.s,ctx.n):null;const first=(ep0&&epLangs(ep0)[0])||first0;
-  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:[first],fm:{},labels:{},pickL:'',custom:[],mx:null,final:false,cats:sr?normCats(sr.cats):['For you'],busy:false,pct:0,msg:'',err:''};
+  const U={title:sr?sr.title:'',cover:sr?sr.cover:'',coverNew:false,langs:[first],fm:{},labels:{},pickL:'',custom:[],star:'',mx:null,final:false,cats:sr?normCats(sr.cats):['For you'],busy:false,pct:0,msg:'',err:''};
   const m=modal(mode==='new'?'Add New':mode==='ep'?'Add EP '+nNo:mode==='season'?'Add Season '+sNo:'Add quality · S'+sNo+' EP '+nNo),b=$('.mbody',m);
   const pool=()=>{const x=[...LANGS];[...((sr&&sr.langs)||[]).filter(l=>l!=='Japanese'),...U.custom,...U.langs].forEach(l=>{if(l&&!x.includes(l))x.push(l)});return x};
   const cleanLang=v=>{v=String(v||'').replace(/[^\p{L}\p{N} \-]/gu,'').replace(/\s+/g,' ').trim().slice(0,20);return v?v[0].toUpperCase()+v.slice(1):''};
@@ -1025,14 +1041,14 @@ function uploadForm(mode,sr,ctx){
     U.mx.tracks.forEach(t=>{if(t.keep&&t.lang){U.fm[t.lang]={file:U.mx.file,fq:U.mx.fq,track:t.idx,mx:true};if(!U.langs.includes(t.lang))U.langs.push(t.lang)}});
   };
   const draw=()=>{
-    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="30">
+    b.innerHTML=`<label class="fl">Title</label><input class="inp" id="uft" value="${esc(U.title)}" ${mode==='new'?'':'disabled'} placeholder="Series title" maxlength="150">
     ${mode==='file'?'':`<label class="fl">Video cover</label><div class="cvrow"><div class="cvp" style="background-image:url('${U.cover}')">${U.cover?'':'No cover'}</div><div class="stack">${mode==='new'?`<button class="btn2" data-u="pickcover">Choose cover</button><button class="btn2" data-u="autocover">Auto-generate</button>`:'<small class="sub" style="padding:0">Uses the series cover</small>'}</div></div>`}
     <div class="where">Season ${sNo} · Episode ${nNo}</div>
     ${mode==='file'?'':`<label class="fl">Language of this video</label><div class="qrow">${pool().map(l=>`<button class="qc ${U.langs[0]===l?'on':''}" data-u="lg" data-v="${l}">${l}</button>`).join('')}<button class="qc" data-u="addlang">+ Other language</button></div>`}
     ${U.langs.map(l=>{const f=U.fm[l];return`<div class="frow"><div><b>${l}</b><small>${f?(f.fq?f.fq+'p':'quality unknown')+' · '+(f.mx?'audio '+(f.track+1)+' of ':'')+mb(f.file.size)+' MB · '+esc(f.file.name):'No file chosen yet'}</small></div>${f&&f.mx?'':`<button data-u="pf" data-l="${l}">${f?'Change':'Choose file'}</button>`}</div>${f&&!f.fq?`<div class="qrow" style="margin:-2px 0 6px">${[1080,720,480,360].map(q=>`<button class="qc" data-u="fq" data-l="${l}" data-v="${q}">${q}p</button>`).join('')}</div>`:''}<div style="height:12px"></div>`}).join('')}
     ${U.langs.length?`<div class="orig">Total to upload: ${mb(total())} MB</div>`:''}
     ${mode==='file'?'':`<label class="fl">Category</label><div class="qrow">${catChips(U.cats)}</div>${feedOk()?'':'<div class="orig" style="color:#ff9a82">Pick at least one category.</div>'}
-    <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div></div>`}
+    <label class="fl">Upload settings</label><div class="box"><div class="row" data-u="tg"><span>Last episode of this season</span><i class="sw ${U.final?'on':''}"></i></div>${mode==='new'?`<div style="padding:0 14px 14px"><div class="orig" style="margin:4px 0 6px">Star text (shown instead of views)</div><input class="inp" id="ust" maxlength="100" placeholder="Optional, up to 100 letters" value="${esc(U.star)}"></div>`:''}</div>`}
     <div class="prog" style="display:${U.busy?'block':'none'}"><div class="bar"><i style="width:${U.pct}%"></i></div><small class="sub" id="upm" style="padding:0">${esc(U.msg)}</small></div>
     ${U.err?`<div class="err" style="margin-top:12px">${esc(U.err)}</div>`:''}
     <button class="cta" style="width:100%;margin-top:22px" data-u="go" ${ok()&&!U.busy?'':'disabled'}>${U.busy?'Uploading… keep the app open':'Upload'}</button>`;
@@ -1040,6 +1056,7 @@ function uploadForm(mode,sr,ctx){
   const prog=(pct,msg)=>{U.pct=pct;U.msg=msg;const i=$('.prog .bar i',m),t=$('#upm',m);if(i)i.style.width=pct+'%';if(t)t.textContent=msg};
   draw();
   m.addEventListener('input',e=>{
+    if(e.target.id==='ust'){U.star=e.target.value;return}
     if(e.target.id==='uft'){U.title=e.target.value;const g=$('[data-u=go]',m);if(g)g.disabled=!(ok()&&!U.busy)}
     else if(e.target.dataset&&e.target.dataset.lbl)U.labels[e.target.dataset.lbl]=e.target.value;
   });
@@ -1077,7 +1094,7 @@ function uploadForm(mode,sr,ctx){
     }
     const mkEp=n=>{const e={n,files:epFiles,want:WANT};if(epSrcs.length)e.srcs=epSrcs;if(Object.keys(lbl).length)e.labels=lbl;return e};
     let data,id=sr&&sr.id,cv=null;
-    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[...U.langs],cats:U.cats,seasons:[{eps:[mkEp(1)],done:U.final}]};cv=U.cover}
+    if(mode==='new'){data={title:U.title.trim(),year:new Date().getFullYear(),by:S.set.name||'Developer',langs:[...U.langs],cats:U.cats,seasons:[{eps:[mkEp(1)],done:U.final}]};if(U.star.trim())data.star=U.star.trim().slice(0,100);cv=U.cover}
     else{
       const fresh=(await api('/api/catalog')).find(x=>x.id===id)||sr;data=clone(fresh);['id','ts','views','cover'].forEach(k=>delete data[k]);
       if(mode==='ep'){const se=data.seasons[sNo-1];se.eps.push(mkEp(nNo));if(U.final)se.done=true}
@@ -1140,7 +1157,7 @@ function playerHTML(){const s=cur();return`<div class="stage" id="stage"><div cl
 <div class="ctl show" id="ctl"><div class="ctop"><button class="ib" data-act="p-back" aria-label="Back">${ic('back',22)}</button><span class="ctitle" id="ctitle"></span></div>
 <div class="cmid"><button class="ib sk" data-act="p-skip" data-v="-10">−10</button><button class="ib big" data-act="p-play" id="ppb" aria-label="Play or pause">${ic('play',26)}</button><button class="ib sk" data-act="p-skip" data-v="10">+10</button></div>
 <div class="cbot"><div class="seekrow"><span id="tcur">0:00</span><input type="range" class="seek" id="seek" min="0" max="1" value="0" step="1" aria-label="Seek"><span id="tdur">0:00</span><button class="qbtn" data-act="p-q" id="qbtn" aria-label="Quality"></button><span class="volw"><button class="ib" data-act="p-vol" id="volb" aria-label="Volume">${ic(S.set.volume===0?'mute':'vol',20)}</button><div class="volp"><input type="range" id="vol" min="0" max="1" step="0.05" value="${S.set.volume}" aria-label="Volume"></div></span><button class="ib" data-act="p-fs" id="fsb" aria-label="Fullscreen">${ic('fs',20)}</button></div>
-<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button><button data-act="p-dl">${ic('download',20)}<span>Download</span></button><button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-sub">${ic('sub',20)}<span>Subtitles</span></button><button data-act="p-ratio">${ic('ratio',20)}<span id="rtl">${ratioLabel(PL.ratio)}</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
+<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button><button data-act="p-dl">${ic('download',20)}<span>Download</span></button><button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-ratio">${ic('ratio',20)}<span id="rtl">${ratioLabel(PL.ratio)}</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
 function pui(){
   const v=V();if(!v||!$('#seek'))return;const d=isFinite(v.duration)?v.duration:0,sk=$('#seek');
   sk.max=d||1;sk.value=v.currentTime||0;$('#tcur').textContent=fmt(v.currentTime);$('#tdur').textContent=fmt(d);
@@ -1291,7 +1308,7 @@ function drawDetail(){
   const all=D.chip==='all'?`<h3>Episodes</h3>`+shown.map(e=>`<div class="erow ${e.n===D.n?'on':''}" data-act="d-ep" data-v="${e.n}"><b>Episode ${pad(e.n)}</b><small>${epQs(e,D.lang).map(q=>q+'p').join(' / ')}</small>${D.offline?'':`<button class="ib" data-act="d-epdl" data-v="${e.n}" aria-label="Download episode ${e.n}">${ic('download',20)}</button>`}</div>`).join(''):'';
   const body=D.tab==='comm'?'<div id="cmwrap"></div>':`<div class="grid">${rec.map(x=>card(x)).join('')}</div>`;
   $('#dsc').innerHTML=`<h2 class="dtitle">${esc(s.title)} <small>[${esc(labelOf(s,D.lang,ep))}]</small><button data-act="d-info">Info ›</button></h2>
-  <div class="meta"><span class="st">${ic('star',14)}${s.views>0?s.views+' views':'New'}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
+  <div class="meta"><span class="st">${ic('star',14)}${s.star?esc(s.star):(s.views>0?s.views+' views':'New')}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
   <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In list':'Add to list'}</button>${D.offline?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
   <h3>Resources<small>Uploaded by ${esc(s.by||'Streamly')}</small></h3>
   <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length>1?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))} ${ic('chev',16)}</button>`:''}</div>
@@ -1307,7 +1324,7 @@ function dlSheet(n){
   const items=qs.map(q=>({t:q+'p',s:fsMode?'':mb(fs[q].size)+' MB',v:q,on:S.downloads.some(d=>d.key===[D.id,D.s,n,D.lang,q].join('-'))}));
   const enc=ep.enc&&Date.now()-ep.enc.ts<3*3600e3?ep.enc.q:[];
   enc.filter(q=>!qs.includes(q)).sort((a,b)=>b-a).forEach(q=>items.push({t:q+'p',s:'Processing…',v:0}));
-  sheet(`Download S${D.s} · E${n}`,items,it=>{if(it.v)startDownload(D.id,D.s,n,D.lang,it.v)},fsMode?'':'The size shown is the real file size for each quality.');
+  sheet(`Download S${D.s} · E${n}`,items,it=>{if(it.v)startDownload(D.id,D.s,n,D.lang,it.v)},fsMode?'':'The size shown is the real file size for each quality.',true);
 }
 const getHist=()=>store.get('strm.hist',[]);
 let histT=0;
@@ -1477,7 +1494,7 @@ const ACT={
     else confirmDelete('Delete "'+s.title+'"?','All seasons, episodes and video files',()=>deleteSeries(s.id))})},
   'd-langchip':t=>setLang(t.dataset.v),
   'd-lang':()=>{if(D.offline)return;const s=cur(),ep=epObj(s,D.s,D.n),ls=seasonLangs(s,D.s);if(ls.length<2)return;sheet('Language',ls.map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>{if(it.v!==D.lang)setLang(it.v)})},
-  'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>{if(it.v===D.s)return;D.s=it.v;const e0=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n)[0];D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()})},
+  'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>{if(it.v===D.s)return;D.s=it.v;const e0=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n)[0];D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},undefined,true)},
   'd-chip':t=>{const v=t.dataset.v;if(v==='all'){epPopup();return}else{if(!epLangs(epObj(cur(),D.s,+v)).length){toast('This episode is still being prepared. Please check back soon.');return}D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
   'd-ep':t=>{D.n=+t.dataset.v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},
   'd-tab':t=>{D.tab=t.dataset.v;drawDetail()},
