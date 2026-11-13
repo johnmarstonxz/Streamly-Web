@@ -341,6 +341,9 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .dd+.lbl{margin-top:6px}
 .stage.closing .art,.stage.closing .poster{display:none!important}.stage.closing{background:#000}
 .player.sbar .ctop{padding-top:30px}
+html.and{padding-top:0!important;padding-bottom:0!important}
+.player.fs .stage{background:#000}
+.player.fs .art{clip-path:inset(0)}
 .card p{display:block;-webkit-line-clamp:unset;overflow:visible;overflow-wrap:anywhere}
 .stage video,.stage.vready video{opacity:1!important;transition:none}
 .stage .poster{display:none!important}
@@ -366,6 +369,8 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v)
 const app=$('#app'),root=$('#root');
 const NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 const plug=n=>{try{return window.Capacitor.registerPlugin(n)}catch(e){return null}};
+if(NATIVE&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='android')document.documentElement.classList.add('and');
+const IMM=(m,o)=>{try{const C=window.Capacitor;if(C&&typeof C.nativePromise==='function')return C.nativePromise('Immersive',m,o||{});const p=plug('Immersive');return Promise.resolve(p[m](o||{}))}catch(e){return Promise.reject(e)}};
 const BAKED_API='';
 let API=String(BAKED_API||window.STREAMLY_API||store.get('strm.api','')).replace(/\/+$/,'');
 let TOKEN=store.get('strm.tok','');
@@ -398,7 +403,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.5';
+const APP_VERSION='3.7';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -756,7 +761,7 @@ function drawMe(){
     if(ty==='hue')return`<div class="row hrow"><span>${t}</span><input type="range" class="hue" id="hue" min="0" max="360" value="${st.hue||265}" aria-label="Custom theme colour"></div>`;
     if(ty==='tg')return`<div class="row" data-act="tg" data-k="${k}"><span>${t}</span><i class="sw ${st[k]?'on':''}"></i></div>`;
     if(ty==='pick')return`<div class="row" data-act="pk" data-k="${k}"><span>${t}</span><em>${esc(setVal(k,o))} ›</em></div>`;
-    if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION+(NATIVE?(HELPER===true?' | fullscreen ready':HELPER===false?' | fullscreen helper missing':''):''):mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
+    if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
   <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
@@ -1199,22 +1204,25 @@ function ended(){
 function nativeFs(on){
   try{
     if(!NATIVE)return;
-    const IM=plug('Immersive'),SO=plug('ScreenOrientation'),SB=plug('StatusBar');
+    const SO=plug('ScreenOrientation'),SB=plug('StatusBar');
     const so=()=>{try{(on?SO.lock({orientation:'landscape'}):SO.unlock()).catch(()=>{})}catch(e){}};
     const sb=()=>{try{if(on){SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
-    try{const p=on?IM.enter():IM.exit();if(p&&p.catch)p.catch(()=>{sb()})}catch(e){sb()}
+    const ov=()=>{try{SB.setOverlaysWebView({overlay:!!on}).catch(()=>{})}catch(e){}};
+    if(on)ov();
+    IMM(on?'enter':'exit').catch(()=>{sb()}).then(()=>{if(!on)ov()});
     so();
-    if(on)setTimeout(()=>{const pl=$('#pl');if(pl&&pl.classList.contains('fs')&&innerHeight>innerWidth){so();try{IM.enter().catch(()=>{})}catch(e){}}},800);
+    if(on)setTimeout(()=>{const pl=$('#pl');if(pl&&pl.classList.contains('fs')&&innerHeight>innerWidth){so();IMM('enter').catch(()=>{})}},800);
   }catch(e){}
 }
 function barsSync(visible){
   if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;visible=!!visible;pl.classList.toggle('sbar',visible);
   const old=()=>{try{const SB=plug('StatusBar');(visible?SB.show():SB.hide()).catch(()=>{})}catch(e){}};
-  try{const p=plug('Immersive').bars({visible});if(p&&p.catch)p.catch(old)}catch(e){old()}
+  IMM('bars',{visible}).catch(old);
 }
 function applyRatio(){
   const pl=$('#pl'),v=V(),st=$('#stage');if(!pl||!v||!st)return;
-  if(!pl.classList.contains('fs')){v.style.cssText='';return}
+  const art=st.querySelector('.art');
+  if(!pl.classList.contains('fs')){v.style.cssText='';if(art){art.style.inset='';art.style.left=art.style.top=art.style.width=art.style.height=''}return}
   const W=st.clientWidth,H=st.clientHeight;if(!W||!H)return;
   let w,h,fit='contain';
   if(PL.ratio==='fill'){w=W;h=H;fit='cover'}
@@ -1222,7 +1230,8 @@ function applyRatio(){
     const q=PL.ratio==='orig'?((v.videoWidth&&v.videoHeight)?v.videoWidth/v.videoHeight:16/9):({'16:9':16/9,'4:3':4/3,'21:9':21/9}[PL.ratio]||16/9);
     if(W/H>q){h=H;w=H*q}else{w=W;h=W/q}
   }
-  v.style.cssText='position:absolute;left:50%;top:50%;width:'+w+'px;height:'+h+'px;transform:translate(-50%,-50%);object-fit:'+fit+';background:#000';
+  if(art){art.style.inset='auto';art.style.left=((W-w)/2)+'px';art.style.top=((H-h)/2)+'px';art.style.width=w+'px';art.style.height=h+'px'}
+  v.style.cssText='position:absolute;left:50%;top:50%;width:'+w+'px;height:'+h+'px;transform:translate(-50%,-50%);object-fit:'+fit+';background:transparent';
 }
 function fitRot(){const pl=$('#pl');if(!pl)return;pl.classList.toggle('rot',pl.classList.contains('fs')&&innerHeight>innerWidth);applyRatio()}
 addEventListener('resize',fitRot);addEventListener('orientationchange',()=>setTimeout(fitRot,150));
@@ -1410,8 +1419,6 @@ function handleBack(){
   exitArm=Date.now();toast('Press back again to exit');return true;
 }
 let leaving=false;
-let HELPER=null;
-if(NATIVE){try{plug('Immersive').info().then(r=>{HELPER=!!(r&&r.v);if(S.tab==='me'&&$('.prof'))drawMe()}).catch(()=>{HELPER=false;if(S.tab==='me'&&$('.prof'))drawMe()})}catch(e){HELPER=false}}
 window.__streamlyBack=()=>{let r;try{r=handleBack()}catch(e){r='exit'}if(r==='exit'){leaving=true;return'exit'}return'ok'};
 {
   let armed=false;
