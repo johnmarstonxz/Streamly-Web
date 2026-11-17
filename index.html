@@ -338,6 +338,15 @@ video::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.15em}
 .sfix{top:0}
 .hlogo{flex:none;display:grid;place-items:center}
 .sfix .search .sbox{min-width:0}.sfix .search .tag{flex:none;white-space:nowrap}
+/* v4.0: lighter drawing on the phone so scrolling stays smooth */
+html.and .nav,html.and .feeds,html.and .sfix,html.and #top,html.and .sticky,html.and .lg,html.and .fx,html.and .cmid .big{backdrop-filter:none;-webkit-backdrop-filter:none}
+html.and .sfix,html.and .feeds,html.and #top,html.and .sticky{background:var(--bg)}
+html.and .nav{background:var(--sf)}
+html.and .lg{background:rgba(0,0,0,.7)}
+html.and .mb{display:none}
+html.and .amb .o,html.and .amb::before,html.and .amb::after{filter:none}
+html.and .cv{box-shadow:0 2px 6px rgba(0,0,0,.28)}
+html.and .card{content-visibility:auto;contain-intrinsic-size:auto 230px}
 .dd+.lbl{margin-top:6px}
 .cv.cvfb{background-color:#1d1530;background-image:linear-gradient(160deg,rgba(var(--acc-rgb),.38),rgba(16,11,26,.95));background-size:cover;background-position:center}
 .cv.cvfb::before{content:"";position:absolute;inset:-10%;background:inherit;background-size:cover;background-position:center;filter:blur(7px)}
@@ -389,7 +398,9 @@ const app=$('#app'),root=$('#root');
 const NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 const plug=n=>{try{return window.Capacitor.registerPlugin(n)}catch(e){return null}};
 if(NATIVE&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='android')document.documentElement.classList.add('and');
-const IMM=(m,o)=>{try{const C=window.Capacitor;if(C&&typeof C.nativePromise==='function')return C.nativePromise('Immersive',m,o||{});const p=plug('Immersive');return Promise.resolve(p[m](o||{}))}catch(e){return Promise.reject(e)}};
+const NP=(pl,m,o)=>{try{const C=window.Capacitor;if(C&&typeof C.nativePromise==='function')return C.nativePromise(pl,m,o||{});const p=plug(pl);return Promise.resolve(p[m](o||{}))}catch(e){return Promise.reject(e)}};
+const IMM=(m,o)=>NP('Immersive',m,o);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const BAKED_API='';
 let API=String(BAKED_API||window.STREAMLY_API||store.get('strm.api','')).replace(/\/+$/,'');
 let TOKEN=store.get('strm.tok','');
@@ -422,7 +433,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='3.9';
+const APP_VERSION='4.0';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -486,9 +497,7 @@ function syncStatusBar(){
     const lum=(m[0]*299+m[1]*587+m[2]*114)/1000;
     let tc=document.querySelector('meta[name=theme-color]');if(!tc){tc=document.createElement('meta');tc.name='theme-color';document.head.appendChild(tc)}tc.setAttribute('content',hex);
     if(!NATIVE)return;
-    const SB=plug('StatusBar');
-    try{SB.setBackgroundColor({color:hex}).catch(()=>{})}catch(e){}
-    try{SB.setStyle({style:lum>150?'LIGHT':'DARK'}).catch(()=>{})}catch(e){}
+    IMM('statusBar',{color:hex,light:lum>150}).catch(()=>{NP('StatusBar','setBackgroundColor',{color:hex}).catch(()=>{});NP('StatusBar','setStyle',{style:lum>150?'LIGHT':'DARK'}).catch(()=>{})});
   }catch(e){}
 }
 function applySettings(){
@@ -522,7 +531,7 @@ function kick(why){
   const rp=why==='replaced';
   const w=el(`<div class="shw lock" style="z-index:1000;justify-content:center;align-items:center"><div class="shb" style="background:rgba(0,0,0,.85)"></div><div class="sh" style="border-radius:22px;max-width:86%;text-align:center;padding:26px 20px;animation:zi .3s"><div style="width:56px;height:56px;border-radius:50%;background:rgba(255,90,110,.16);color:#ff5a6e;display:grid;place-items:center;margin:0 auto 12px">${ic('x',28,2.2)}</div><h4 style="font-size:1.15rem;margin:0 0 6px">${rp?'Signed out on this device':'Developer deactivated this access key'}</h4><p class="sub" style="padding:0 0 18px;font-size:.9rem">${rp?'This access key was just used to sign in on another device. Only one device can use a key at a time.':"You can't use Streamly with this key anymore. Contact the developer for a new key."}</p><button class="cta" style="width:100%">${rp?'Sign in again':'Close app'}</button></div></div>`);
   app.appendChild(w);
-  $('.cta',w).onclick=()=>{w.remove();kicked=false;wipe();renderGate();if(!rp){const AP=NATIVE&&plug('App');if(AP&&AP.exitApp)AP.exitApp()}};
+  $('.cta',w).onclick=()=>{w.remove();kicked=false;wipe();renderGate();if(!rp&&NATIVE)NP('App','exitApp').catch(()=>{})};
 }
 async function syncProfile(){try{if(!S.set.name||S.set.name==='Guest')return;const b={name:S.set.name};if(S.set.photo&&/^data:/.test(S.set.photo))b.avatar=S.set.photo;await api('/api/profile',{json:b})}catch(e){}}
 let catSig='';
@@ -567,16 +576,16 @@ function startBg(){
   resumeDownloads();
 }
 /* ---------- ambient glow / scroll ---------- */
-const amb=$('#amb');let vel=0,lastY=0,lastT=performance.now(),idleT,raf=0,glowCur=.2,mbCur=0;
+const amb=$('#amb');let curY=0,vel=0,lastY=0,lastT=performance.now(),idleT,raf=0,glowCur=.2,mbCur=0;
 function wake(){amb.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>amb.classList.add('idle'),1600)}
 function loop(){
   vel*=.9;const lv=0;
   const g=S.set.glow?(.22+Math.min(1,vel/28)*.78):.45;glowCur+=(g-glowCur)*.15;mbCur+=(Math.min(1,vel/38)-mbCur)*.25;
-  app.style.setProperty('--glow',glowCur.toFixed(3));app.style.setProperty('--mbpx',(mbCur*lv).toFixed(2)+'px');app.style.setProperty('--mbo',lv?Math.min(1,mbCur*2).toFixed(2):0);
+  amb.style.setProperty('--glow',glowCur.toFixed(3));amb.style.setProperty('--sy',curY);
   if(vel>.05||Math.abs(g-glowCur)>.005||mbCur>.01)raf=requestAnimationFrame(loop);else raf=0;
 }
 function onScroll(e){
-  const c=e.target,now=performance.now(),y=c.scrollTop;app.style.setProperty('--sy',y);
+  const c=e.target,now=performance.now(),y=c.scrollTop;curY=y;
   const sf=$('.sfix');if(sf)sf.classList.toggle('pin',y>4);
   const v=Math.abs(y-lastY)/Math.max(8,now-lastT)*16;vel=Math.max(vel,v);lastY=y;lastT=now;wake();if(!raf)raf=requestAnimationFrame(loop);
 }
@@ -649,6 +658,7 @@ async function initProfile(){
 /* ---------- main shell ---------- */
 function navItems(){const a=[['home','Home','home'],['playlist','Watchlist','list']];if(isApp())a.push(['downloads','Download','download']);a.push(['chats','Chats','chat']);if(S.mode==='dev')a.push(['upload','Upload','upload']);a.push(['me','Me','me']);return a}
 function renderMain(){
+  setTimeout(permFlow,1800);
   root.innerHTML=`<div class="view"><div id="top"></div><div class="mid"><div id="feedbar"></div><div class="content" id="content"></div></div><nav class="nav" id="nav"></nav></div>`;
   $('#content').addEventListener('scroll',onScroll,{passive:true});
   drawNav();go(S.tab);
@@ -663,7 +673,7 @@ function go(t){
   ({home:drawHome,playlist:drawPlaylist,downloads:drawDownloads,chats:drawChats,me:drawMe,upload:drawUpload})[t]();
   drawNav();popAnim(c,'pa2');
 }
-const card=(s,badge='')=>`<div class="card" data-act="open" data-id="${s.id}"><div class="cv"><img src="${s.cover}" alt="" loading="lazy"><span class="lg">${esc((S.lang&&(s.langs||[]).includes(S.lang))?S.lang:(s.langs||[''])[0])}</span>${badge}</div><p>${esc(s.title)}</p></div>`;
+const card=(s,badge='')=>`<div class="card" data-act="open" data-id="${s.id}"><div class="cv"><img src="${s.cover}" alt="" loading="lazy" decoding="async"><span class="lg">${esc((S.lang&&(s.langs||[]).includes(S.lang))?S.lang:(s.langs||[''])[0])}</span>${badge}</div><p>${esc(s.title)}</p></div>`;
 const THUMBS=(()=>{const o=store.get('strm.thumbs',{});return o&&typeof o==='object'?o:{}})();
 let thumbT=0;const saveThumbs=()=>{clearTimeout(thumbT);thumbT=setTimeout(()=>{try{store.set('strm.thumbs',THUMBS)}catch(e){}},1500)};
 const coverId=im=>{const cv=im&&im.closest&&im.closest('.cv');return cv&&cv.parentElement&&cv.parentElement.dataset?cv.parentElement.dataset.id:null};
@@ -817,7 +827,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${typeof Notification!=='undefined'?`<div class="row" data-act="notif"><span>Notifications</span><em>${Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on')} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${isApp()?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -1259,10 +1269,9 @@ function ended(){
 function nativeFs(on){
   try{
     if(!NATIVE)return;
-    const SO=plug('ScreenOrientation'),SB=plug('StatusBar');
-    const so=()=>{try{(on?SO.lock({orientation:'landscape'}):SO.unlock()).catch(()=>{})}catch(e){}};
-    const sb=()=>{try{if(on){SB.setOverlaysWebView({overlay:true}).catch(()=>{});SB.show().catch(()=>{})}else{SB.show().catch(()=>{});SB.setOverlaysWebView({overlay:false}).catch(()=>{})}}catch(e){}};
-    const ov=()=>{try{SB.setOverlaysWebView({overlay:!!on}).catch(()=>{})}catch(e){}};
+    const so=()=>{(on?NP('ScreenOrientation','lock',{orientation:'landscape'}):NP('ScreenOrientation','unlock')).catch(()=>{})};
+    const sb=()=>{if(on){NP('StatusBar','setOverlaysWebView',{overlay:true}).catch(()=>{});NP('StatusBar','show').catch(()=>{})}else{NP('StatusBar','show').catch(()=>{});NP('StatusBar','setOverlaysWebView',{overlay:false}).catch(()=>{})}};
+    const ov=()=>{NP('StatusBar','setOverlaysWebView',{overlay:!!on}).catch(()=>{})};
     if(on)ov();
     IMM(on?'enter':'exit').catch(()=>{sb()}).then(()=>{if(!on){ov();setTimeout(syncStatusBar,200)}});
     so();
@@ -1271,7 +1280,7 @@ function nativeFs(on){
 }
 function barsSync(visible){
   if(!NATIVE)return;const pl=$('#pl');if(!pl||!pl.classList.contains('fs'))return;visible=!!visible;pl.classList.toggle('sbar',visible);
-  const old=()=>{try{const SB=plug('StatusBar');(visible?SB.show():SB.hide()).catch(()=>{})}catch(e){}};
+  const old=()=>{NP('StatusBar',visible?'show':'hide').catch(()=>{})};
   IMM('bars',{visible}).catch(old);
 }
 function applyRatio(){
@@ -1338,7 +1347,8 @@ function openDetail(id,o={}){
 }
 function drawDetail(){
   const s=cur(),se=s.seasons[D.s-1],ep=epObj(s,D.s,D.n),eps=[...se.eps].sort((a,b)=>a.n-b.n),inPl=S.playlist.includes(s.id),genres=(s.cats||[]).filter(c=>GENRES.includes(c));
-  const scs=new Set(s.cats||[]);const rec=S.series.filter(x=>x.id!==s.id).map(x=>({x,k:(x.cats||[]).filter(c=>scs.has(c)).length})).sort((a,b)=>b.k-a.k||(b.x.ts||0)-(a.x.ts||0)).slice(0,9).map(o=>o.x);
+  if(!D.recIds||D.recFor!==s.id){D.recFor=s.id;D.recIds=shuffle(S.series.filter(x=>x.id!==s.id).map(x=>x.id)).slice(0,9)}
+  const rec=D.recIds.map(ser).filter(Boolean);
   const langs=seasonLangs(s,D.s);
   const lchips=langs.map(l=>`<button data-act="d-langchip" data-v="${l}" class="${D.lang===l?'on':''}">${esc(labelOf(s,l,ep))}</button>`).join('');
   const shown=eps.filter(e=>epHas(e,D.lang));
@@ -1417,7 +1427,7 @@ function vcmp(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.
 let updShown=false;
 const FORCE_AFTER=3;
 const updCount=v=>{const o=store.get('strm.updLater',{});return o&&o.v===v?(o.n||0):0};
-const closeApp=()=>{try{if(NATIVE){plug('App').exitApp();return}}catch(e){}try{window.close()}catch(e){}};
+const closeApp=()=>{if(NATIVE){NP('App','exitApp').catch(()=>{try{window.close()}catch(e){}});return}try{window.close()}catch(e){}};
 async function checkUpdate(){
   if(updShown||!navigator.onLine||$('.shw.lock'))return;
   try{
@@ -1434,6 +1444,61 @@ async function doUpdate(){
   if(location.protocol==='file:'){window.open(SITE,'_blank');return}
   try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister());(await caches.keys()).forEach(k=>caches.delete(k))}catch(e){}
   location.reload();
+}
+let permBusy=false,PUSH_ON=false;
+async function enableNotifications(){
+  try{
+    const r=await NP('PushNotifications','requestPermissions');
+    if(r&&r.receive==='granted'){store.set('strm.notifOk',true);setupPush();return true}
+    store.set('strm.notifOk',false);toast('Notifications are blocked. Allow them in the phone settings.');return false;
+  }catch(e){return false}
+}
+async function setupPush(){
+  if(!NATIVE||!TOKEN)return;
+  try{
+    if(!PUSH_ON){
+      const C=window.Capacitor;
+      const add=(ev,cb)=>{try{if(C&&typeof C.addListener==='function')return C.addListener('PushNotifications',ev,cb)}catch(e){}try{return plug('PushNotifications').addListener(ev,cb)}catch(e){}};
+      add('registration',x=>{if(x&&x.value){store.set('strm.pushTok',x.value);if(store.get('strm.notifOk',null)===true)api('/api/push/register',{json:{token:x.value}}).catch(()=>{})}});
+      add('registrationError',()=>{});
+      PUSH_ON=true;
+    }
+    await NP('PushNotifications','register');
+  }catch(e){}
+}
+async function permFlow(){
+  if(!NATIVE||!TOKEN||permBusy)return;
+  permBusy=true;
+  try{
+    const n=store.get('strm.notifOk',null);
+    if(n===null){
+      const v=await ctrDialog({title:'Allow notifications',text:'Get a notification on your phone when a new episode is added or someone sends a message, even when the app is closed.',buttons:[{t:'Allow',primary:true},{t:'Not now'}]});
+      if(v===0)await enableNotifications();else if(v===1)store.set('strm.notifOk',false);
+    }else if(n===true)setupPush();
+    if(!store.get('strm.dlOk',false)&&!store.get('strm.storAsked',false)){
+      const ok=await askStorage(0);store.set('strm.storAsked',true);if(ok)store.set('strm.dlOk',true);
+    }
+  }catch(e){}
+  permBusy=false;
+}
+function ctrDialog(o){
+  return new Promise(res=>{
+    const w=el(`<div class="shw ctr" style="z-index:960"><div class="shb"></div><div class="sh" style="text-align:center"><h4>${esc(o.title)}</h4><p class="sub" style="padding:0 14px 14px;font-size:.9rem">${o.text}</p>${o.buttons.map((b,i)=>`<div class="shi${b.primary?' on':''}" data-v="${i}" style="justify-content:center;text-align:center">${esc(b.t)}</div>`).join('')}</div></div>`);
+    app.appendChild(w);
+    const done=v=>{w.remove();res(v)};
+    w.addEventListener('click',e=>{if(e.target.classList.contains('shb')){done(-1);return}const b=e.target.closest('[data-v]');if(b)done(+b.dataset.v)});
+  });
+}
+function pickSeason(n){
+  const s=cur();if(!s||!D||n===D.s)return;
+  const eps=[...s.seasons[n-1].eps].sort((a,b)=>a.n-b.n);
+  const withLang=eps.find(e=>epLangs(e).includes(D.lang));
+  const go=()=>{const e0=withLang||eps[0];if(!e0)return;D.s=n;D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(ls.length&&!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()};
+  if(withLang||!eps.length){go();return}
+  const other=[...new Set(eps.flatMap(e=>epLangs(e)))];
+  if(!other.length){go();return}
+  const L=l=>esc(l)+' dubbed';
+  ctrDialog({title:'Season '+pad(n),text:'Season '+pad(n)+' isn&rsquo;t released in '+L(D.lang)+' yet, so you can enjoy it with the official '+other.map(L).join(' or ')+' version.',buttons:[{t:'Watch in '+other[0],primary:true},{t:'Stay on Season '+pad(D.s)}]}).then(v=>{if(v===0)go()});
 }
 function showUpdate(j,must){
   updShown=true;
@@ -1542,7 +1607,7 @@ const ACT={
     else confirmDelete('Delete "'+s.title+'"?','All seasons, episodes and video files',()=>deleteSeries(s.id))})},
   'd-langchip':t=>setLang(t.dataset.v),
   'd-lang':()=>{if(D.offline)return;const s=cur(),ep=epObj(s,D.s,D.n),ls=seasonLangs(s,D.s);if(ls.length<2)return;sheet('Language',ls.map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>{if(it.v!==D.lang)setLang(it.v)})},
-  'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>{if(it.v===D.s)return;D.s=it.v;const e0=[...s.seasons[D.s-1].eps].sort((a,b)=>a.n-b.n)[0];D.n=e0.n;D.chip=e0.n;const ls=epLangs(e0);if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},undefined,true)},
+  'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>pickSeason(it.v),undefined,true)},
   'd-chip':t=>{const v=t.dataset.v;if(v==='all'){epPopup();return}else{if(!epLangs(epObj(cur(),D.s,+v)).length){toast('This episode is still being prepared. Please check back soon.');return}D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
   'd-ep':t=>{D.n=+t.dataset.v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},
   'd-tab':t=>{D.tab=t.dataset.v;drawDetail()},
@@ -1567,7 +1632,8 @@ const ACT={
   dclean:()=>sheet('Cancel unfinished uploads?',[{t:'Cancel them now',s:'Do not do this while an upload is running',v:1},{t:'Keep',v:0}],async it=>{if(!it.v)return;try{const r=await api('/api/upload/cleanup',{method:'POST'});toast('Cancelled '+r.cancelled+' unfinished upload'+(r.cancelled===1?'':'s'))}catch(e){toast((e&&e.error)||'Failed')}}),
   hist:historyModal,
   hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>{const i=$('#q');if(i)i.focus()},260)},
-  notif:async()=>{if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
+  stor:async()=>{if(store.get('strm.dlOk',false)){store.set('strm.dlOk',false);toast('Storage is off. Downloads are paused.')}else{if(await askStorage(0)){store.set('strm.dlOk',true);store.set('strm.storAsked',true)}}drawMe()},
+  notif:async()=>{if(NATIVE){if(store.get('strm.notifOk',null)===true){store.set('strm.notifOk',false);try{await api('/api/push/unregister',{json:{token:store.get('strm.pushTok','')}})}catch(e){}toast('Notifications are off')}else{await enableNotifications()}drawMe();return}if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
   hub:()=>{if(NATIVE||location.protocol==='file:'){window.open(SITE+'downloads.html','_blank');return}location.href='downloads.html'},
   apk:()=>{location.href=APK_FILE+'?v='+Date.now()},
   'up-new':()=>uploadForm('new'),
