@@ -370,6 +370,12 @@ html.and .card{content-visibility:auto;contain-intrinsic-size:auto 230px}
 .stage.closing{background:#000}
 .player.sbar .ctop{padding-top:30px}
 html.and{padding-top:0!important;padding-bottom:0!important}
+/* v4.1: no copy/select menu on long press (typing fields still work); phone status bar shows the app theme */
+*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+img{-webkit-user-drag:none}
+html.and .view{padding-top:var(--sat,0px)}
+html.and #app::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat,0px);z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(var(--acc-rgb),calc(.22 + var(--glow)*.5)),rgba(var(--acc-rgb),0))}
 .player.fs .stage{background:#000}
 .player.fs .art{clip-path:inset(0)}
 .card p{overflow-wrap:anywhere}
@@ -405,6 +411,28 @@ const BAKED_API='';
 let API=String(BAKED_API||window.STREAMLY_API||store.get('strm.api','')).replace(/\/+$/,'');
 let TOKEN=store.get('strm.tok','');
 const DEVICE=store.get('strm.dev',null)||(()=>{const d=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Math.random()).slice(2)+Date.now();store.set('strm.dev',d);return d})();
+function guessDevName(){
+  try{
+    const ua=navigator.userAgent||'',pf=(navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||'';
+    let os='Device';
+    if(/iPhone/i.test(ua))os='iPhone';
+    else if(/iPad/i.test(ua)||(/Mac/i.test(pf)&&navigator.maxTouchPoints>1))os='iPad';
+    else if(/Android/i.test(ua)){const m=ua.match(/Android[^;)]*;\s*([^;)]+)/);let n=m&&m[1]?m[1].replace(/\sBuild.*$/,'').trim():'';os=n.length>1?n:'Android phone'}
+    else if(/Windows/i.test(ua)||/Win/i.test(pf))os='Windows PC';
+    else if(/Mac/i.test(ua)||/Mac/i.test(pf))os='Mac';
+    else if(/CrOS/i.test(ua))os='Chromebook';
+    else if(/Linux/i.test(ua)||/Linux/i.test(pf))os='Linux PC';
+    let via='';
+    if(NATIVE||/Electron/i.test(ua))via=' (app)';
+    else{const b=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/Firefox\//.test(ua)?'Firefox':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':'';via=b?' ('+b+')':''}
+    return (os+via).slice(0,60)
+  }catch(e){return 'Unknown device'}
+}
+let DEVNAME=store.get('strm.dname',null)||guessDevName(),dnSent='';
+if(NATIVE&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='android'){
+  IMM('device').then(r=>{if(r&&r.name){DEVNAME=String(r.name).slice(0,60);store.set('strm.dname',DEVNAME)}}).catch(()=>{});
+  IMM('edge').then(r=>{if(r&&r.on)document.documentElement.style.setProperty('--sat',(+r.top||0)+'px')}).catch(()=>{});
+}
 const CONFIG_URL='https://johnmarstonxz.github.io/Streamly-Web/config.js';
 function loadConfig(){
   return new Promise(res=>{
@@ -433,7 +461,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='4.0';
+const APP_VERSION='4.1';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -544,7 +572,7 @@ async function loadCatalog(force){
   }catch(e){}
 }
 function refreshView(){const t=S.tab;if(t==='home'&&$('#grid')){const lg=$('#langs');if(lg&&S.feed==='foryou')lg.innerHTML=langChips();drawGrid()}else if(t==='playlist')drawPlaylist();else if(t==='upload')drawUpload();else if(t==='downloads')drawDownloads()}
-async function pollMe(){if(!TOKEN||!navigator.onLine)return;try{const r=await api('/api/me');if((r.tag||'')!==(S.tag||'')){S.tag=r.tag||'';const u=store.get('strm.unlock',{});u.tag=S.tag;store.set('strm.unlock',u);if(S.tab==='me'&&$('.prof'))drawMe()}}catch(e){}}
+async function pollMe(){if(!TOKEN||!navigator.onLine)return;try{const nm=DEVNAME;const r=await api('/api/me'+(nm!==dnSent?'?dn='+encodeURIComponent(nm):''));dnSent=nm;if((r.tag||'')!==(S.tag||'')){S.tag=r.tag||'';const u=store.get('strm.unlock',{});u.tag=S.tag;store.set('strm.unlock',u);if(S.tab==='me'&&$('.prof'))drawMe()}}catch(e){}}
 async function pollUnread(){
   if(!TOKEN||!navigator.onLine||S.tab==='chats')return;
   try{
@@ -606,13 +634,13 @@ function renderGate(msg){
     if(!API){const sv=($('#srv').value||'').trim().replace(/\/+$/,'');if(!/^https:\/\/.+/.test(sv)){err.textContent='Enter the server address first.';return}API=sv;store.set('strm.api',sv)}
     err.textContent='Checking…';
     try{
-      const r=await api('/api/login',{json:{key:v,device:DEVICE},noauth:true});
+      const r=await api('/api/login',{json:{key:v,device:DEVICE,dname:DEVNAME},noauth:true});
       TOKEN=r.token;store.set('strm.tok',TOKEN);store.set('strm.unlock',{kind:r.kind,mask:r.mask,tag:r.tag||''});S.kind=r.kind;S.tag=r.tag||'';S.mode=r.kind==='dev'?store.get('strm.mode','dev'):'customer';
       renderMain();startBg();initProfile();
     }catch(e){
       if(e.offline)err.textContent='Cannot reach the server. Check the address and your internet.';
       else if(e.error==='deactivated')err.textContent='This key was deactivated by the developer.';
-      else if(e.error==='in_use')err.textContent='This access key is currently active on another device. Please log out there first (Me, then Remove key and lock app), then sign in here.';
+      else if(e.error==='in_use')err.textContent='This access key is currently active on another device. Please log out there first (Me, then Logout), then sign in here.';
       else if(e.error==='invalid'){fails++;err.textContent='Invalid key. Check it and try again.';inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake');if(fails>=5){lockUntil=Date.now()+30000;fails=0}}
       else err.textContent='Something went wrong: '+(e.error||'try again');
     }
@@ -827,7 +855,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${isApp()?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div><div class="row act" data-act="logout"><span>Remove key and lock app</span></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${isApp()?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${S.mode==='dev'?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -1181,10 +1209,10 @@ function uploadForm(mode,sr,ctx){
 }
 function keysModal(){
   const m=modal('Control keys'),b=$('.mbody',m);
-  const draw=async()=>{try{const ks=await api('/api/keys');let c=0;b.innerHTML=`<p class="sub" style="padding:0 0 12px">Deactivate a key and that person is signed out on every phone within seconds, even while watching.</p><div class="box">`+ks.map(k=>{const dev=k.kind==='dev';if(!dev)c++;return`<div class="row" ${dev?'style="cursor:default"':`data-u="k" data-h="${k.h}" data-a="${k.active}"`}><span>${dev?'Developer key':(k.tag==='friend'?'Friend key ':'Customer key ')+c}<small style="display:block;color:var(--tx2)">${esc(k.mask)}</small></span>${dev?'<em>Always active</em>':`${k.inuse?`<button class="tag" data-u="free" data-h="${k.h}">In use · Free</button>`:''}<span class="tag ${k.active?'':'warn'}">${k.active?'Active':'Deactivated'}</span><i class="sw ${k.active?'on':''}"></i>`}</div>`}).join('')+`</div>`}catch(e){b.innerHTML='<p class="sub">Could not load keys. Check your internet.</p>'}};
+  const draw=async()=>{try{const ks=await api('/api/keys');let c=0;b.innerHTML=`<p class="sub" style="padding:0 0 12px">Deactivate a key and that person is signed out on every phone within seconds, even while watching.</p><div class="box">`+ks.map(k=>{const dev=k.kind==='dev';if(!dev)c++;return`<div class="row" ${dev?'style="cursor:default"':`data-u="k" data-h="${k.h}" data-a="${k.active}"`}><span>${dev?'Developer key':(k.tag==='friend'?'Friend key ':'Customer key ')+c}<small style="display:block;color:var(--tx2)">${esc(k.mask)}</small>${!dev&&k.inuse?`<small style="display:block;color:var(--acc);margin-top:2px">Logged in on: ${esc(k.dname||'Unknown device')}</small>`:''}</span>${dev?'<em>Always active</em>':`${k.inuse?`<button class="tag" data-u="free" data-h="${k.h}">Logout</button>`:''}<span class="tag ${k.active?'':'warn'}">${k.active?'Active':'Deactivated'}</span><i class="sw ${k.active?'on':''}"></i>`}</div>`}).join('')+`</div>`}catch(e){b.innerHTML='<p class="sub">Could not load keys. Check your internet.</p>'}};
   draw();
   m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t)return;if(t.dataset.u==='x'){m.remove();return}
-    if(t.dataset.u==='free'){try{await api('/api/keys/'+t.dataset.h+'/free',{method:'POST'});toast('Key freed. It can be used on a new device now.');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
+    if(t.dataset.u==='free'){try{await api('/api/keys/'+t.dataset.h+'/free',{method:'POST'});toast('Device logged out. The key can be used on a new device now.');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
     const on=t.dataset.a==='1';try{await api('/api/keys/'+t.dataset.h,{json:{active:on?0:1}});toast(on?'Key deactivated. That user is signed out.':'Key activated');draw()}catch(er){toast((er&&er.error)||'Failed')}});
 }
 /* ---------- video page + player ---------- */
@@ -1575,7 +1603,8 @@ document.addEventListener('pointerdown',e=>{
 document.addEventListener('click',e=>{if(lp.swallow&&Date.now()<lp.swallow){e.stopPropagation();e.preventDefault()}lp.swallow=0},true);
 document.addEventListener('pointermove',e=>{if(lp.t&&(Math.abs(e.clientX-lp.x)>10||Math.abs(e.clientY-lp.y)>10))clearTimeout(lp.t)},{passive:true});
 document.addEventListener('scroll',()=>clearTimeout(lp.t),true);
-document.addEventListener('contextmenu',e=>{if(e.target.closest('.msg,.card'))e.preventDefault()});
+document.addEventListener('contextmenu',e=>{const t=e.target;if(!(t&&t.closest&&t.closest('input,textarea')))e.preventDefault()});
+document.addEventListener('selectstart',e=>{const t=e.target&&(e.target.nodeType===1?e.target:e.target.parentElement);if(!(t&&t.closest&&t.closest('input,textarea')))e.preventDefault()});
 const ACT={
   open:t=>{if(Date.now()-lpT<700)return;const id=+t.dataset.id;if(S.tab==='upload'&&!$('#detail')){manage(id);return}openDetail(id,{from:t})},
   lang:t=>{S.lang=t.dataset.v;store.set('strm.lang',S.lang);const e=$('#langs');if(e)e.innerHTML=langChips();drawGrid()},
