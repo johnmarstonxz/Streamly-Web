@@ -374,7 +374,8 @@ html.and{padding-top:0!important;padding-bottom:0!important}
 *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 img{-webkit-user-drag:none}
-html.and .view{padding-top:var(--sat,0px)}
+html.and .view,html.and .detail,html.and .modal{padding-top:var(--sat,0px)}
+html.and .detail::before,html.and .modal::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat,0px);pointer-events:none;background:linear-gradient(180deg,rgba(var(--acc-rgb),calc(.22 + var(--glow)*.5)),rgba(var(--acc-rgb),0))}
 html.and #app::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat,0px);z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(var(--acc-rgb),calc(.22 + var(--glow)*.5)),rgba(var(--acc-rgb),0))}
 .player.fs .stage{background:#000}
 .player.fs .art{clip-path:inset(0)}
@@ -463,7 +464,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='4.3';
+const APP_VERSION='4.4';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -550,7 +551,7 @@ async function api(path,o={}){
     if(r.status===403&&j.error==='deactivated'&&!o.noauth)kick();
     else if(r.status===403&&j.error==='replaced'&&!o.noauth)kick('replaced');
     else if(r.status===401&&TOKEN&&!o.noauth){wipe();renderGate('Please enter your key again.')}
-    throw{status:r.status,error:j.error||'error'};
+    throw{status:r.status,error:j.error||'error',left:j.left,wait:j.wait};
   }
   return j;
 }
@@ -625,25 +626,29 @@ function splash(){
   const sp=$('#splash');sp.innerHTML=`${logo(124,'ls')}<div class="sname">${[...'Streamly'].map((c,i)=>`<span style="animation-delay:${1+i*.07}s">${c}</span>`).join('')}</div><div class="stag">Your private cinema</div>`;
   setTimeout(()=>{sp.classList.add('out');setTimeout(()=>sp.remove(),650)},2900);
 }
-let fails=0,lockUntil=0;
+let lockUntil=+store.get('strm.lockUntil',0)||0;
 function renderGate(msg){
   S.tab='home';
   root.innerHTML=`<div class="gate"><div>${logo(64)}</div><h1>Streamly</h1><p>Enter your access key to open the app.</p>${API?'':'<input class="keyin" id="srv" style="letter-spacing:0;text-transform:none;font-weight:400" placeholder="Server address (https://...workers.dev)" autocomplete="off" spellcheck="false">'}<input class="keyin" id="key" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24"><div class="err" id="err">${esc(msg||'')}</div><button class="cta" id="unlock">Unlock</button></div>`;
   const inp=$('#key'),err=$('#err');
+  let lt=0;
+  const showLock=()=>{clearInterval(lt);const t=()=>{const sec=Math.ceil((lockUntil-Date.now())/1000);if(sec<=0){clearInterval(lt);if(/^Too many/.test(err.textContent))err.textContent='';return}err.textContent='Too many wrong attempts. Try again in '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')+'.'};t();lt=setInterval(t,1000)};
+  if(Date.now()<lockUntil)showLock();
   const go=async()=>{
     const v=inp.value.trim().toUpperCase();if(!v)return;
-    if(Date.now()<lockUntil){err.textContent='Too many tries. Wait '+Math.ceil((lockUntil-Date.now())/1000)+'s.';return}
+    if(Date.now()<lockUntil){showLock();return}
     if(!API){const sv=($('#srv').value||'').trim().replace(/\/+$/,'');if(!/^https:\/\/.+/.test(sv)){err.textContent='Enter the server address first.';return}API=sv;store.set('strm.api',sv)}
     err.textContent='Checking…';
     try{
       const r=await api('/api/login',{json:{key:v,device:DEVICE,dname:DEVNAME},noauth:true});
-      TOKEN=r.token;store.set('strm.tok',TOKEN);store.set('strm.unlock',{kind:r.kind,mask:r.mask,tag:r.tag||''});S.kind=r.kind;S.tag=r.tag||'';S.mode=r.kind==='dev'?store.get('strm.mode','dev'):'customer';
+      TOKEN=r.token;lockUntil=0;store.del('strm.lockUntil');store.set('strm.tok',TOKEN);store.set('strm.unlock',{kind:r.kind,mask:r.mask,tag:r.tag||''});S.kind=r.kind;S.tag=r.tag||'';S.mode=r.kind==='dev'?store.get('strm.mode','dev'):'customer';
       renderMain();startBg();initProfile();
     }catch(e){
       if(e.offline)err.textContent='Cannot reach the server. Check the address and your internet.';
       else if(e.error==='deactivated')err.textContent='This key was deactivated by the developer.';
       else if(e.error==='in_use')err.textContent='This access key is currently active on another device. Please log out there first (Me, then Logout), then sign in here.';
-      else if(e.error==='invalid'){fails++;err.textContent='Invalid key. Check it and try again.';inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake');if(fails>=5){lockUntil=Date.now()+30000;fails=0}}
+      else if(e.error==='locked'){lockUntil=Date.now()+(+e.wait||600)*1000;store.set('strm.lockUntil',lockUntil);inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake');showLock()}
+      else if(e.error==='invalid'){err.textContent='Invalid key.'+(e.left>=0?' '+e.left+' attempt'+(e.left===1?'':'s')+' left.':' Check it and try again.');inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake')}
       else err.textContent='Something went wrong: '+(e.error||'try again');
     }
   };
@@ -987,9 +992,9 @@ function nextSeason(){
     if(t.dataset.u==='pick'){const s=ser(+t.dataset.id);if(!s.seasons[s.seasons.length-1].done){toast('Season '+s.seasons.length+' is not complete yet. Mark its last episode as final first.');return}m.remove();uploadForm('season',s)}});
 }
 /* real upload to the server (Backblaze) in resumable parts */
-function putPart(fileId,n,buf,sha,onP){
+function putPart(fileId,n,buf,sha,onP,safe){
   return new Promise((res,rej)=>{
-    const x=new XMLHttpRequest();x.open('PUT',API+'/api/upload/part?fileId='+encodeURIComponent(fileId)+'&n='+n);
+    const x=new XMLHttpRequest();x.open('PUT',API+'/api/upload/part?fileId='+encodeURIComponent(fileId)+'&n='+n+(safe?'&buf=1':''));
     x.setRequestHeader('Authorization','Bearer '+TOKEN);x.setRequestHeader('X-Sha1',sha);x.timeout=600000;
     x.upload.onprogress=e=>onP(e.loaded);
     x.onload=()=>{if(x.status===200)res();else{let j={};try{j=JSON.parse(x.responseText)}catch(e){}rej({status:x.status,error:j.error||'Part failed'})}};
@@ -1016,7 +1021,7 @@ async function uploadFile(file,onProgress){
         if(ex&&ex.sha1===sha){sha1s[i]=sha;loaded[i]=blob.size;report();continue}
         let ok=false,lastErr=null;
         for(let t=0;t<6&&!ok&&!fail;t++){
-          try{await putPart(st.fileId,n,blob,sha,l=>{loaded[i]=l;report()});ok=true}
+          try{await putPart(st.fileId,n,blob,sha,l=>{loaded[i]=l;report()},t>0);ok=true}
           catch(e){lastErr=e;if(e&&e.status===403){kick();throw e}if(e&&e.status&&e.status<500&&e.status!==408)throw e;await new Promise(r=>setTimeout(r,2000*(t+1)))}
         }
         if(!ok)throw lastErr||{error:'Upload failed'};
@@ -1474,8 +1479,9 @@ async function checkUpdate(){
     showUpdate(j,must);
   }catch(e){}
 }
+const openDl=()=>{window.open(SITE+'downloads.html','_blank')};
 async function doUpdate(){
-  if(NATIVE){window.open(SITE+'downloads.html','_blank');return}
+  if(NATIVE){openDl();return}
   if(location.protocol==='file:'){window.open(SITE,'_blank');return}
   try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister());(await caches.keys()).forEach(k=>caches.delete(k))}catch(e){}
   location.reload();
@@ -1670,7 +1676,7 @@ const ACT={
   hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>{const i=$('#q');if(i)i.focus()},260)},
   stor:async()=>{if(store.get('strm.dlOk',false)){store.set('strm.dlOk',false);toast('Storage is off. Downloads are paused.')}else{if(await askStorage(0)){store.set('strm.dlOk',true);store.set('strm.storAsked',true)}}drawMe()},
   notif:async()=>{if(NATIVE){if(store.get('strm.notifOk',null)===true){store.set('strm.notifOk',false);try{await api('/api/push/unregister',{json:{token:store.get('strm.pushTok','')}})}catch(e){}toast('Notifications are off')}else{await enableNotifications()}drawMe();return}if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
-  hub:()=>{if(NATIVE||location.protocol==='file:'){window.open(SITE+'downloads.html','_blank');return}location.href='downloads.html'},
+  hub:()=>{if(NATIVE||location.protocol==='file:'){openDl();return}location.href='downloads.html'},
   apk:()=>{location.href=APK_FILE+'?v='+Date.now()},
   'up-new':()=>uploadForm('new'),
   'up-next':nextSeason
