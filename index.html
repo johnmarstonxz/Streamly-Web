@@ -401,6 +401,8 @@ const el=h=>{const t=document.createElement('template');t.innerHTML=h.trim();ret
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const app=$('#app'),root=$('#root');
+/* VIDEO DOWNLOADS: false = switched off everywhere. To bring downloads back change this to true. */
+const DL_ON=false;
 const NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 const plug=n=>{try{return window.Capacitor.registerPlugin(n)}catch(e){return null}};
 if(NATIVE&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='android')document.documentElement.classList.add('and');
@@ -461,7 +463,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='4.2';
+const APP_VERSION='4.3';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -552,7 +554,7 @@ async function api(path,o={}){
   }
   return j;
 }
-function wipe(){TOKEN='';store.del('strm.tok');store.del('strm.unlock');S.kind=null}
+function wipe(){TOKEN='';store.del('strm.tok');store.del('strm.unlock');store.del('strm.chc');store.del('strm.seen');delete CH.chat;S.kind=null}
 let kicked=false;
 function kick(why){
   if(kicked)return;kicked=true;closeDetail(true);$$('.modal,.shw,.dlgw').forEach(n=>n.remove());
@@ -596,7 +598,7 @@ function notifyOS(title,body){
 }
 let bgOn=false;
 function startBg(){
-  if(bgOn)return;bgOn=true;loadCatalog();
+  if(bgOn)return;bgOn=true;loadCatalog();chatPoll('chat').catch(()=>{});
   api('/api/ping',{noauth:true}).then(r=>{if(!r.v||r.v<3){S.srvOld=true;if(S.kind==='dev')toast('The server is out of date. Update it so chat works.')}}).catch(()=>{});
   setInterval(loadCatalog,15000);setInterval(pollMe,8000);setInterval(pollUnread,5000);setInterval(chatTick,1200);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){pollMe();loadCatalog();chatTick()}});
@@ -684,7 +686,7 @@ async function initProfile(){
   }catch(e){askName()}
 }
 /* ---------- main shell ---------- */
-function navItems(){const a=[['home','Home','home'],['playlist','Watchlist','list']];if(isApp())a.push(['downloads','Download','download']);a.push(['chats','Chats','chat']);if(S.mode==='dev')a.push(['upload','Upload','upload']);a.push(['me','Me','me']);return a}
+function navItems(){const a=[['home','Home','home'],['playlist','Watchlist','list']];if(isApp()&&DL_ON)a.push(['downloads','Download','download']);a.push(['chats','Chats','chat']);if(S.mode==='dev')a.push(['upload','Upload','upload']);a.push(['me','Me','me']);return a}
 function renderMain(){
   setTimeout(permFlow,1800);
   root.innerHTML=`<div class="view"><div id="top"></div><div class="mid"><div id="feedbar"></div><div class="content" id="content"></div></div><nav class="nav" id="nav"></nav></div>`;
@@ -692,7 +694,7 @@ function renderMain(){
   drawNav();go(S.tab);
 }
 function drawNav(){
-  const act=S.downloads.some(d=>!d.done);
+  const act=DL_ON&&S.downloads.some(d=>!d.done);
   $('#nav').innerHTML=navItems().map(([k,l,i])=>`<button data-act="nav" data-v="${k}" class="${S.tab===k?'on':''}">${ic(i,22)}<span>${l}</span>${(k==='downloads'&&act)||(k==='chats'&&S.unread>0)?'<i class="dot"></i>':''}</button>`).join('');
 }
 function go(t){
@@ -708,7 +710,7 @@ const coverId=im=>{const cv=im&&im.closest&&im.closest('.cv');return cv&&cv.pare
 document.addEventListener('error',e=>{const im=e.target;if(!im||im.tagName!=='IMG')return;const cv=im.closest&&im.closest('.cv');if(!cv)return;const id=coverId(im);im.style.visibility='hidden';cv.classList.add('cvfb');const u=id&&THUMBS[id];if(u)cv.style.backgroundImage=`url(${u})`},true);
 document.addEventListener('load',e=>{const im=e.target;if(!im||im.tagName!=='IMG')return;const id=coverId(im);if(!id||THUMBS[id])return;(window.requestIdleCallback||setTimeout)(()=>tinyCover(im.currentSrc||im.src).then(u=>{if(u&&!THUMBS[id]){THUMBS[id]=u;saveThumbs()}}))},true);
 addEventListener('online',()=>{document.querySelectorAll('.cv.cvfb').forEach(cv=>{const im=cv.querySelector('img');if(!im)return;im.style.visibility='';cv.classList.remove('cvfb');cv.style.backgroundImage='';const s=im.src;im.removeAttribute('src');im.src=s})});
-const newest=s=>s.ts&&Date.now()-s.ts<1728e5?'<span class="nw">NEW</span>':'';
+const newest=s=>s.la&&s.la.n&&s.la.t&&Date.now()-s.la.t<1728e5?'<span class="nw">EP '+s.la.n+'</span>':(s.ts&&Date.now()-s.ts<1728e5?'<span class="nw">NEW</span>':'');
 function feedList(){
   let l=[...S.series];const q=S.q.trim().toLowerCase();
   if(q)return l.filter(s=>s.title.toLowerCase().includes(q)||(s.cats||[]).some(c=>c.toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
@@ -735,6 +737,7 @@ async function dlUrl(d){const dir=await opfs();const fh=await dir.getFileHandle(
 async function rmFile(d){try{const dir=await opfs();await dir.removeEntry(dlFile(d))}catch(e){}}
 function abortDl(key){const c=DLC[key];if(c)try{c.abort()}catch(e){}}
 async function pruneDownloads(){
+  if(!DL_ON)return;
   const keep=[];
   for(const d of S.downloads){const sr=ser(d.id),ep=sr&&epObj(sr,d.s,d.n),f=ep&&ep.files&&ep.files[d.lang]&&ep.files[d.lang][d.q];
     if(f&&f.name===d.name)keep.push(d);else{abortDl(d.key);rmFile(d)}}
@@ -749,6 +752,7 @@ function askStorage(size){
   });
 }
 async function startDownload(id,s,n,lang,q){
+  if(!DL_ON)return;
   const sr=ser(id),ep=epObj(sr,s,n),f=ep&&ep.files&&ep.files[lang]&&ep.files[lang][q];if(!f)return;
   const key=[id,s,n,lang,q].join('-');if(S.downloads.find(d=>d.key===key)){toast('Already in Download');return}
   try{await opfs();if(typeof FileSystemFileHandle==='undefined'||!('createWritable' in FileSystemFileHandle.prototype))throw new Error('x')}catch(e){toast('Downloads need Chrome on Android or the Streamly app');return}
@@ -785,13 +789,16 @@ async function runDl(key){
     if(!(e&&e.name==='AbortError')){d.paused=true;d.err=navigator.onLine?'Failed. Tap resume.':'Waiting for network'}
   }finally{delete DLC[key];saveDl();drawNav();if(S.tab==='downloads')drawDownloads()}
 }
-function resumeDownloads(){S.downloads.forEach(d=>{if(!d.done&&(!d.paused||d.err==='Waiting for network'))runDl(d.key)})}
+function resumeDownloads(){if(!DL_ON)return;S.downloads.forEach(d=>{if(!d.done&&(!d.paused||d.err==='Waiting for network'))runDl(d.key)})}
 function drawDownloads(){
   const used=S.downloads.reduce((a,d)=>a+d.got,0);
   $('#content').innerHTML=`<h2 class="pt">Downloads</h2><p class="sub">${S.downloads.length} items · ${mb(used)} MB used</p>`+(S.downloads.length?S.downloads.map(d=>{const s=ser(d.id);if(!s)return'';const pc=d.size?Math.min(100,d.got/d.size*100):0;return`<div class="dlrow"><img src="${s.cover}" alt="" data-act="${d.done?'dl-play':''}" data-key="${d.key}"><div class="inf" data-act="${d.done?'dl-play':''}" data-key="${d.key}"><b>${esc(s.title)}</b><small>S${d.s} · E${d.n} · ${d.q}p · ${d.lang} · ${mb(d.size)} MB</small>${d.done?`<small style="display:block;color:var(--acc)">Ready to watch offline</small>`:`<div class="bar"><i style="width:${pc.toFixed(0)}%"></i></div><small>${d.paused?(d.err||'Paused'):pc.toFixed(0)+'% · '+mb(d.got)+' / '+mb(d.size)+' MB'}</small>`}</div>${d.done?'':`<button class="ib" data-act="dl-pause" data-key="${d.key}">${ic(d.paused?'play':'pausei',20)}</button>`}<button class="ib" data-act="dl-del" data-key="${d.key}">${ic('trash',20)}</button></div>`}).join(''):`<div class="empty"><b>Nothing downloaded yet</b>Open a video, tap Download and pick a quality.</div>`);
 }
 /* ---------- chat + comments ---------- */
-const CH={};const chatState=sc=>CH[sc]||(CH[sc]={msgs:[],after:0,since:0});
+const CH={};
+const loadChatCache=()=>{const c=store.get('strm.chc',null);return c&&Array.isArray(c.msgs)?{msgs:c.msgs,after:c.after||0,since:c.since||0,loaded:false}:{msgs:[],after:0,since:0,loaded:false}};
+const saveChatCache=c=>{try{store.set('strm.chc',{msgs:c.msgs.slice(-80),after:c.after,since:c.since})}catch(e){}};
+const chatState=sc=>CH[sc]||(CH[sc]=sc==='chat'?loadChatCache():{msgs:[],after:0,since:0,loaded:false});
 let MOUNT=null;
 async function chatPoll(sc){
   const c=chatState(sc);const r=await api('/api/chat?scope='+encodeURIComponent(sc)+'&after='+c.after+'&since='+c.since);c.since=r.now;let ch=0;
@@ -800,7 +807,7 @@ async function chatPoll(sc){
     if(m.tomb){if(i>=0){c.msgs.splice(i,1);ch++}continue}
     if(i>=0)c.msgs[i]=m;else c.msgs.push(m);ch++;
   }
-  c.msgs.sort((a,b)=>a.id-b.id);return ch;
+  c.msgs.sort((a,b)=>a.id-b.id);c.loaded=true;if(sc==='chat'&&(ch||!c.saved)){c.saved=true;saveChatCache(c)}return ch;
 }
 function bubble(m,isNew){
   const av=m.avatar?`<img class="av" src="${m.avatar}" alt="">`:`<i class="av">${esc((m.name||'?')[0].toUpperCase())}</i>`;
@@ -816,7 +823,7 @@ function paintMsgs(bottom){
   if(!MOUNT)return;const box=$('.msgs',MOUNT.host);if(!box)return;const c=chatState(MOUNT.scope);
   const near=box.scrollHeight-box.scrollTop-box.clientHeight<90;
   const first=!MOUNT.shown;if(first)MOUNT.shown=new Set();
-  box.innerHTML=c.msgs.length?c.msgs.map(m=>bubble(m,!first&&!MOUNT.shown.has(m.id))).join(''):(MOUNT.err?`<div class="empty"><b>Chat is not working</b>${esc(S.srvOld?'The server is out of date. Update the server files and try again.':MOUNT.err)}</div>`:`<div class="empty"><b>No messages yet</b>Be the first to say hi.</div>`);
+  box.innerHTML=c.msgs.length?c.msgs.map(m=>bubble(m,!first&&!MOUNT.shown.has(m.id))).join(''):(!c.loaded&&!MOUNT.err?'':MOUNT.err?`<div class="empty"><b>Chat is not working</b>${esc(S.srvOld?'The server is out of date. Update the server files and try again.':MOUNT.err)}</div>`:`<div class="empty"><b>No messages yet</b>Be the first to say hi.</div>`);
   c.msgs.forEach(m=>MOUNT.shown.add(m.id));
   if(!MOUNT.host.classList.contains('cmb')&&(bottom||near))box.scrollTop=box.scrollHeight;
 }
@@ -847,7 +854,7 @@ const ACCS=['#8b5cf6','#6366f1','#ec4899','#14b8a6','#f97316'];
 const setVal=(k,o)=>{const f=(o||[]).find(x=>String(x[0])===String(S.set[k]));return f?f[1]:S.set[k]};
 function drawMe(){
   const st=S.set,un=store.get('strm.unlock',{mask:''});
-  const grp=SETS.map(([g,items])=>`<div class="grp"><h4>${g}</h4><div class="box">${items.map(([k,t,ty,o])=>{
+  const grp=SETS.filter(([g])=>DL_ON||g!=='Downloads').map(([g,items])=>`<div class="grp"><h4>${g}</h4><div class="box">${items.map(([k,t,ty,o])=>{
     if(ty==='color')return`<div class="row"><span>${t}</span><div class="sws">${ACCS.map(c=>`<button data-act="acc" data-v="${c}" class="${st.accent===c?'on':''}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div></div>`;
     if(ty==='hue')return`<div class="row hrow"><span>${t}</span><input type="range" class="hue" id="hue" min="0" max="360" value="${st.hue||265}" aria-label="Custom theme colour"></div>`;
     if(ty==='tg')return`<div class="row" data-act="tg" data-k="${k}"><span>${t}</span><i class="sw ${st[k]?'on':''}"></i></div>`;
@@ -855,7 +862,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${isApp()?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.mode==='dev'||S.kind==='manager')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${(isApp()&&DL_ON)?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.mode==='dev'||S.kind==='manager')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -1233,7 +1240,7 @@ function playerHTML(){const s=cur();return`<div class="stage" id="stage"><div cl
 <div class="ctl show" id="ctl"><div class="ctop"><button class="ib" data-act="p-back" aria-label="Back">${ic('back',22)}</button><span class="ctitle" id="ctitle"></span></div>
 <div class="cmid"><button class="ib sk" data-act="p-skip" data-v="-10">−10</button><button class="ib big" data-act="p-play" id="ppb" aria-label="Play or pause">${ic('play',26)}</button><button class="ib sk" data-act="p-skip" data-v="10">+10</button></div>
 <div class="cbot"><div class="seekrow"><span id="tcur">0:00</span><input type="range" class="seek" id="seek" min="0" max="1" value="0" step="1" aria-label="Seek"><span id="tdur">0:00</span><button class="qbtn" data-act="p-q" id="qbtn" aria-label="Quality"></button><span class="volw"><button class="ib" data-act="p-vol" id="volb" aria-label="Volume">${ic(S.set.volume===0?'mute':'vol',20)}</button><div class="volp"><input type="range" id="vol" min="0" max="1" step="0.05" value="${S.set.volume}" aria-label="Volume"></div></span><button class="ib" data-act="p-fs" id="fsb" aria-label="Fullscreen">${ic('fs',20)}</button></div>
-<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button>${isApp()?`<button data-act="p-dl">${ic('download',20)}<span>Download</span></button>`:''}<button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-ratio">${ic('ratio',20)}<span id="rtl">${ratioLabel(PL.ratio)}</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
+<div class="opts"><button data-act="p-q">${ic('layers',20)}<span>Quality</span></button>${(isApp()&&DL_ON)?`<button data-act="p-dl">${ic('download',20)}<span>Download</span></button>`:''}<button data-act="p-lang">${ic('globe',20)}<span>Language</span></button><button data-act="p-ratio">${ic('ratio',20)}<span id="rtl">${ratioLabel(PL.ratio)}</span></button><button data-act="p-speed">${ic('speed',20)}<span id="spl">Speed</span></button></div></div></div></div>`}
 function pui(){
   const v=V();if(!v||!$('#seek'))return;const d=isFinite(v.duration)?v.duration:0,sk=$('#seek');
   sk.max=d||1;sk.value=v.currentTime||0;$('#tcur').textContent=fmt(v.currentTime);$('#tdur').textContent=fmt(d);
@@ -1381,11 +1388,11 @@ function drawDetail(){
   const lchips=langs.map(l=>`<button data-act="d-langchip" data-v="${l}" class="${D.lang===l?'on':''}">${esc(labelOf(s,l,ep))}</button>`).join('');
   const shown=eps.filter(e=>epHas(e,D.lang));
   const chips=`<button data-act="d-chip" data-v="all" class="${D.chip==='all'?'on':''}">All</button>`+shown.map(e=>`<button data-act="d-chip" data-v="${e.n}" class="${D.chip===e.n?'on':''} ${epLangs(e).length?'':'pend'}">${pad(e.n)}</button>`).join('');
-  const all=D.chip==='all'?`<h3>Episodes</h3>`+shown.map(e=>`<div class="erow ${e.n===D.n?'on':''}" data-act="d-ep" data-v="${e.n}"><b>Episode ${pad(e.n)}</b><small>${epQs(e,D.lang).map(q=>q+'p').join(' / ')}</small>${D.offline?'':`<button class="ib" data-act="d-epdl" data-v="${e.n}" aria-label="Download episode ${e.n}">${ic('download',20)}</button>`}</div>`).join(''):'';
+  const all=D.chip==='all'?`<h3>Episodes</h3>`+shown.map(e=>`<div class="erow ${e.n===D.n?'on':''}" data-act="d-ep" data-v="${e.n}"><b>Episode ${pad(e.n)}</b><small>${epQs(e,D.lang).map(q=>q+'p').join(' / ')}</small>${(D.offline||!DL_ON)?'':`<button class="ib" data-act="d-epdl" data-v="${e.n}" aria-label="Download episode ${e.n}">${ic('download',20)}</button>`}</div>`).join(''):'';
   const body=D.tab==='comm'?'<div id="cmwrap"></div>':`<div class="grid">${rec.map(x=>card(x)).join('')}</div>`;
   $('#dsc').innerHTML=`<h2 class="dtitle">${esc(s.title)} <small>[${esc(labelOf(s,D.lang,ep))}]</small><button data-act="d-info">Info ›</button></h2>
   <div class="meta"><span class="st">${ic('star',14)}${s.star?esc(s.star):(s.views>0?s.views+' views':'New')}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
-  <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In Watchlist':'Add to Watchlist'}</button>${(D.offline||!isApp())?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
+  <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In Watchlist':'Add to Watchlist'}</button>${(D.offline||!isApp()||!DL_ON)?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
   <h3>Resources<small>Uploaded by ${esc(s.by||'Streamly')}</small></h3>
   <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length>1?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))} ${ic('chev',16)}</button>`:''}</div>
   <div class="lbl">${langs.length>1?'Episodes in '+esc(labelOf(s,D.lang,ep)):'Episodes'}</div><div class="chips">${chips}</div>${all}
@@ -1487,7 +1494,7 @@ async function setupPush(){
     if(!PUSH_ON){
       const C=window.Capacitor;
       const add=(ev,cb)=>{try{if(C&&typeof C.addListener==='function')return C.addListener('PushNotifications',ev,cb)}catch(e){}try{return plug('PushNotifications').addListener(ev,cb)}catch(e){}};
-      add('registration',x=>{if(x&&x.value){store.set('strm.pushTok',x.value);if(store.get('strm.notifOk',null)===true)api('/api/push/register',{json:{token:x.value}}).catch(()=>{})}});
+      add('registration',x=>{if(x&&x.value){store.set('strm.pushTok',x.value);if(store.get('strm.notifOk',null)===true)api('/api/push/register',{json:{token:x.value,v:APP_VERSION}}).catch(()=>{})}});
       add('registrationError',()=>{});
       PUSH_ON=true;
     }
@@ -1503,7 +1510,7 @@ async function permFlow(){
       const v=await ctrDialog({title:'Allow notifications',text:'Get a notification on your phone when a new episode is added or someone sends a message, even when the app is closed.',buttons:[{t:'Allow',primary:true},{t:'Not now'}]});
       if(v===0)await enableNotifications();else if(v===1)store.set('strm.notifOk',false);
     }else if(n===true)setupPush();
-    if(!store.get('strm.dlOk',false)&&!store.get('strm.storAsked',false)){
+    if(DL_ON&&!store.get('strm.dlOk',false)&&!store.get('strm.storAsked',false)){
       const ok=await askStorage(0);store.set('strm.storAsked',true);if(ok)store.set('strm.dlOk',true);
     }
   }catch(e){}
@@ -1672,7 +1679,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;drawGrid()}else if(e.target.id==='hue'){S.set.hue=+e.target.value;S.set.theme='custom';applySettings()}});
 document.addEventListener('keydown',e=>{if(e.target.id==='q'&&e.key==='Enter')e.target.blur();if(MOUNT&&e.key==='Enter'&&e.target.closest('.cin'))ACT['chat-send']()});
 document.addEventListener('change',e=>{if(e.target.id==='hue'){saveSet();drawMe();return}if(e.target.id!=='photoin')return;const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=120;const x=c.getContext('2d');const r=Math.max(120/img.width,120/img.height);x.drawImage(img,(120-img.width*r)/2,(120-img.height*r)/2,img.width*r,img.height*r);S.set.photo=c.toDataURL('image/jpeg',.8);saveSet();syncProfile();drawMe()};img.src=URL.createObjectURL(f)});
-const offUI=()=>{const o=$('#offchip');if(o)o.style.display=navigator.onLine?'none':'block';toast(navigator.onLine?'Back online':'You are offline. Downloads still play.')};
+const offUI=()=>{const o=$('#offchip');if(o)o.style.display=navigator.onLine?'none':'block';toast(navigator.onLine?'Back online':(DL_ON?'You are offline. Downloads still play.':'You are offline'))};
 addEventListener('online',offUI);addEventListener('offline',offUI);
 /* ---------- boot ---------- */
 applySettings();splash();wake();
