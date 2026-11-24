@@ -374,6 +374,7 @@ html.and{padding-top:0!important;padding-bottom:0!important}
 *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 img{-webkit-user-drag:none}
+.dscroll{zoom:.92}
 html.and .view,html.and .detail,html.and .modal{padding-top:var(--sat,0px)}
 html.and .detail::before,html.and .modal::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat,0px);pointer-events:none;background:linear-gradient(180deg,rgba(var(--acc-rgb),calc(.22 + var(--glow)*.5)),rgba(var(--acc-rgb),0))}
 html.and #app::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat,0px);z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(var(--acc-rgb),calc(.22 + var(--glow)*.5)),rgba(var(--acc-rgb),0))}
@@ -464,7 +465,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='4.4';
+const APP_VERSION='4.5';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -715,7 +716,7 @@ const coverId=im=>{const cv=im&&im.closest&&im.closest('.cv');return cv&&cv.pare
 document.addEventListener('error',e=>{const im=e.target;if(!im||im.tagName!=='IMG')return;const cv=im.closest&&im.closest('.cv');if(!cv)return;const id=coverId(im);im.style.visibility='hidden';cv.classList.add('cvfb');const u=id&&THUMBS[id];if(u)cv.style.backgroundImage=`url(${u})`},true);
 document.addEventListener('load',e=>{const im=e.target;if(!im||im.tagName!=='IMG')return;const id=coverId(im);if(!id||THUMBS[id])return;(window.requestIdleCallback||setTimeout)(()=>tinyCover(im.currentSrc||im.src).then(u=>{if(u&&!THUMBS[id]){THUMBS[id]=u;saveThumbs()}}))},true);
 addEventListener('online',()=>{document.querySelectorAll('.cv.cvfb').forEach(cv=>{const im=cv.querySelector('img');if(!im)return;im.style.visibility='';cv.classList.remove('cvfb');cv.style.backgroundImage='';const s=im.src;im.removeAttribute('src');im.src=s})});
-const newest=s=>s.la&&s.la.n&&s.la.t&&Date.now()-s.la.t<1728e5?'<span class="nw">EP '+s.la.n+'</span>':(s.ts&&Date.now()-s.ts<1728e5?'<span class="nw">NEW</span>':'');
+const newest=s=>s.la&&s.la.n&&s.la.t?(Date.now()-s.la.t<1728e5?'<span class="nw">EP '+s.la.n+'</span>':''):(s.ts&&Date.now()-s.ts<1728e5?'<span class="nw">NEW</span>':'');
 function feedList(){
   let l=[...S.series];const q=S.q.trim().toLowerCase();
   if(q)return l.filter(s=>s.title.toLowerCase().includes(q)||(s.cats||[]).some(c=>c.toLowerCase().includes(q))).sort((a,b)=>b.ts-a.ts);
@@ -867,7 +868,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${(isApp()&&DL_ON)?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.mode==='dev'||S.kind==='manager')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${(isApp()&&DL_ON)?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.mode==='dev'||S.kind==='manager')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="devs"><span>Devices</span><em>Manage &rsaquo;</em></div><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -1227,6 +1228,25 @@ function keysModal(){
     if(t.dataset.u==='free'){try{await api('/api/keys/'+t.dataset.h+'/free',{method:'POST'});toast('Device logged out. The key can be used on a new device now.');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
     const on=t.dataset.a==='1';try{await api('/api/keys/'+t.dataset.h,{json:{active:on?0:1}});toast(on?'Key deactivated. That user is signed out.':'Key activated');draw()}catch(er){toast((er&&er.error)||'Failed')}});
 }
+function devicesModal(){
+  const m=modal('Devices'),b=$('.mbody',m);
+  const ago=n=>n<60?'just now':n<3600?Math.floor(n/60)+' min ago':n<86400?Math.floor(n/3600)+' h ago':Math.floor(n/86400)+' d ago';
+  const draw=async()=>{try{const ks=await api('/api/keys');let c=0;
+    const rows=ks.filter(k=>k.kind!=='dev').map(k=>{const mg=k.kind==='manager';if(!mg)c++;
+      const label=k.pname||(mg?'Friend manager':(k.tag==='friend'?'Friend ':'Customer ')+c);
+      const has=k.ago>=0;
+      const st=!k.active?'<span class="tag warn">Blocked</span>':k.online?'<span class="tag" style="color:#3ddc84">&#9679; Online</span>':has?'<span class="tag">Offline</span>':'<span class="tag">Not logged in</span>';
+      return `<div class="row" style="display:block;cursor:default"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><b>${esc(label)}</b>${st}</div><small style="display:block;color:var(--tx2)">${esc(k.mask)}</small><small style="display:block;margin-top:3px;color:var(--acc)">${has?'Phone: '+esc(k.dname||'Unknown device'):'No phone is logged in'}</small>${has&&!k.online?`<small style="display:block;color:var(--tx2)">Last seen ${ago(k.ago)}</small>`:''}<div style="display:flex;gap:8px;margin-top:10px">${has?`<button class="tag" data-u="free" data-h="${k.h}">Logout</button>`:''}<button class="tag ${k.active?'warn':''}" data-u="blk" data-h="${k.h}" data-a="${k.active}" data-n="${esc(label)}">${k.active?'Block':'Unblock'}</button></div></div>`}).join('');
+    b.innerHTML=`<p class="sub" style="padding:0 0 12px">Which person is logged in on which phone, and whether the app is open right now. Logout lets them sign in again. Block stops their key completely until you unblock it.</p><div class="box">${rows||'<div class="row" style="cursor:default"><span>No keys yet</span></div>'}</div>`}
+    catch(er){b.innerHTML='<p class="sub">Could not load devices. Check your internet.</p>'}};
+  draw();
+  const iv=setInterval(()=>{if(!document.body.contains(m)){clearInterval(iv);return}draw()},10000);
+  m.addEventListener('click',async e=>{const t=e.target.closest('[data-u]');if(!t)return;if(t.dataset.u==='x'){m.remove();return}
+    if(t.dataset.u==='free'){try{await api('/api/keys/'+t.dataset.h+'/free',{method:'POST'});toast('Logged out');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
+    if(t.dataset.u==='blk'){const h=t.dataset.h,on=t.dataset.a==='1',nm=t.dataset.n;
+      if(!on){try{await api('/api/keys/'+h,{json:{active:1}});toast('Unblocked');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
+      sheet('Block '+nm+'?',[{t:'Block and log out',s:'They cannot use the app until you unblock',v:'b'}],async()=>{try{await api('/api/keys/'+h,{json:{active:0}});toast('Blocked. That person is signed out.');draw()}catch(er){toast((er&&er.error)||'Failed')}})}});
+}
 /* ---------- video page + player ---------- */
 let D=null;const PL={q:0,base:1,hideT:0,bufT:0,lpT:0,ratio:S.set.ratio||'16:9',resume:0,sub:'',auto:true,stalls:[],lastSwitch:0,good:0,abrT:0};
 const cur=()=>ser(D.id);
@@ -1380,6 +1400,7 @@ function openDetail(id,o={}){
   if(!ep||!epLangs(ep).length){toast(ep&&ep.srcs&&ep.srcs.length?'This episode is still being prepared. Please check back soon.':'This episode has no video yet');return}
   const ls=epLangs(ep);
   D={id,s,n,lang:o.lang&&ls.includes(o.lang)?o.lang:(S.lang&&ls.includes(S.lang)?S.lang:ls[0]),tab:'for',chip:n,offline:!!o.localUrl,q:o.q||null,localUrl:o.localUrl||''};
+  if(o.from){let top=0;sr.seasons.forEach(se=>se.eps.forEach(e=>epLangs(e).forEach(l=>epQs(e,l).forEach(q=>{if(q>top)top=q}))));if(top===720){const sid=id;setTimeout(()=>{if(D&&D.id===sid)toast('This video is available in 720p quality.')},500)}}
   const d=el(`<div class="detail ${D.offline?'off':''}" id="detail"><div class="player" id="pl"></div><div class="dscroll" id="dsc"></div></div>`);
   if(o.from){try{const r=o.from.getBoundingClientRect(),a=app.getBoundingClientRect();d.style.setProperty('--ox',(r.left-a.left+r.width/2)+'px');d.style.setProperty('--oy',(r.top-a.top+r.height/2)+'px')}catch(e){}}
   app.appendChild(d);$('#pl').innerHTML=playerHTML();paintArt();bindPlayer();drawDetail();PL.resume=o.resume||0;PL.auto=S.set.defQ==='Auto';PL.stalls=[];PL.good=0;loadEp();if(o.auto&&o.resume)toast('Continuing from '+fmt(o.resume));
@@ -1395,6 +1416,7 @@ function drawDetail(){
   const chips=`<button data-act="d-chip" data-v="all" class="${D.chip==='all'?'on':''}">All</button>`+shown.map(e=>`<button data-act="d-chip" data-v="${e.n}" class="${D.chip===e.n?'on':''} ${epLangs(e).length?'':'pend'}">${pad(e.n)}</button>`).join('');
   const all=D.chip==='all'?`<h3>Episodes</h3>`+shown.map(e=>`<div class="erow ${e.n===D.n?'on':''}" data-act="d-ep" data-v="${e.n}"><b>Episode ${pad(e.n)}</b><small>${epQs(e,D.lang).map(q=>q+'p').join(' / ')}</small>${(D.offline||!DL_ON)?'':`<button class="ib" data-act="d-epdl" data-v="${e.n}" aria-label="Download episode ${e.n}">${ic('download',20)}</button>`}</div>`).join(''):'';
   const body=D.tab==='comm'?'<div id="cmwrap"></div>':`<div class="grid">${rec.map(x=>card(x)).join('')}</div>`;
+  const dsc0=$('#dsc'),chipX=(dsc0.querySelector('.chips')||{}).scrollLeft||0,dscY=dsc0.scrollTop;
   $('#dsc').innerHTML=`<h2 class="dtitle">${esc(s.title)} <small>[${esc(labelOf(s,D.lang,ep))}]</small><button data-act="d-info">Info ›</button></h2>
   <div class="meta"><span class="st">${ic('star',14)}${s.star?esc(s.star):(s.views>0?s.views+' views':'New')}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
   <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In Watchlist':'Add to Watchlist'}</button>${(D.offline||!isApp()||!DL_ON)?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
@@ -1402,6 +1424,7 @@ function drawDetail(){
   <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length>1?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))} ${ic('chev',16)}</button>`:''}</div>
   <div class="lbl">${langs.length>1?'Episodes in '+esc(labelOf(s,D.lang,ep)):'Episodes'}</div><div class="chips">${chips}</div>${all}
   <div class="dtabs"><button data-act="d-tab" data-v="for" class="${D.tab==='for'?'on':''}">For you</button><button data-act="d-tab" data-v="comm" class="${D.tab==='comm'?'on':''}">Comments</button></div>${body}`;
+  {const c2=$('#dsc .chips');if(c2)c2.scrollLeft=chipX;$('#dsc').scrollTop=dscY}
   if(D.tab==='comm')mountChat($('#cmwrap'),'c:'+D.id,'Add a comment','cmb');else if(MOUNT&&MOUNT.scope.indexOf('c:')===0)MOUNT=null;
 }
 function dlSheet(n){
@@ -1665,6 +1688,7 @@ const ACT={
   editname:()=>nameDialog(false),
   mode:()=>{S.mode=S.mode==='dev'?'customer':'dev';store.set('strm.mode',S.mode);if(S.tab==='upload')S.tab='me';drawNav();drawMe();toast(S.mode==='dev'?'Developer mode on':'Customer mode on')},
   ckeys:keysModal,
+  devs:devicesModal,
   logout:async()=>{try{await api('/api/logout',{method:'POST'})}catch(e){}wipe();store.del('strm.mode');S.mode='customer';renderGate()},
   act:t=>{const k=t.dataset.k;
     if(k==='_clrdl'){S.downloads.forEach(d=>{abortDl(d.key);rmFile(d)});S.downloads=[];saveDl();drawMe();drawNav();toast('Downloads deleted')}
