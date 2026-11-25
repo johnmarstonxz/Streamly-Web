@@ -375,6 +375,13 @@ html.and{padding-top:0!important;padding-bottom:0!important}
 input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 img{-webkit-user-drag:none}
 .dscroll{zoom:.92}
+/* v4.6: every season has its own colour (season count on the video page, the Season button and the Season list) */
+.ssn{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;background:rgba(var(--acc-rgb),.14);border:1px solid rgba(var(--acc-rgb),.35);color:color-mix(in srgb,var(--acc) 78%,var(--tx));font-weight:600}
+.ssn i,.sdot{width:8px;height:8px;border-radius:50%;background:var(--sc);flex:none;display:inline-block}
+.dd button.sbtn{border-color:var(--sc);background:color-mix(in srgb,var(--sc) 14%,transparent)}
+.sdot{width:10px;height:10px;box-shadow:0 0 0 3px color-mix(in srgb,var(--sc) 26%,transparent)}
+.shw .shi.sc{box-shadow:inset 3px 0 0 var(--sc)}
+.shw .shi.sc.on{background:color-mix(in srgb,var(--sc) 22%,transparent);box-shadow:inset 3px 0 0 var(--sc);color:inherit}
 html.and .view,html.and .detail,html.and .modal{padding-top:var(--sat,0px)}
 html.and .detail::before,html.and .modal::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat,0px);pointer-events:none;background:linear-gradient(180deg,rgba(var(--acc-rgb),calc(.22 + var(--glow)*.5)),rgba(var(--acc-rgb),0))}
 html.and #app::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat,0px);z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(var(--acc-rgb),calc(.22 + var(--glow)*.5)),rgba(var(--acc-rgb),0))}
@@ -465,7 +472,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='4.5';
+const APP_VERSION='4.6';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -504,7 +511,7 @@ const host=()=>$('#pl.fs')||app;
 function toast(t){$$('.toast').forEach(x=>x.remove());const n=el(`<div class="toast">${esc(t)}</div>`);host().appendChild(n);setTimeout(()=>n.remove(),2300)}
 function sheet(title,items,cb,sub,center){
   const ctr=!!center&&!document.querySelector('#pl.fs');
-  const w=el(`<div class="shw${ctr?' ctr':''}"><div class="shb"></div><div class="sh"><div class="grab"></div><h4>${esc(title)}</h4>${sub?`<p class="sub">${esc(sub)}</p>`:''}${items.map((it,i)=>`<button class="shi ${it.on?'on':''}" data-i="${i}"><span>${esc(it.t)}</span>${it.s?`<em>${esc(it.s)}</em>`:''}${it.on?ic('check',18):''}</button>`).join('')}</div></div>`);
+  const w=el(`<div class="shw${ctr?' ctr':''}"><div class="shb"></div><div class="sh"><div class="grab"></div><h4>${esc(title)}</h4>${sub?`<p class="sub">${esc(sub)}</p>`:''}${items.map((it,i)=>`<button class="shi ${it.on?'on':''}${it.c?' sc':''}" ${it.c?`style="--sc:${it.c}"`:''} data-i="${i}">${it.c?'<i class="sdot"></i>':''}<span>${esc(it.t)}</span>${it.s?`<em>${esc(it.s)}</em>`:''}${it.on?ic('check',18):''}</button>`).join('')}</div></div>`);
   host().appendChild(w);const close=()=>{w.classList.add('out');setTimeout(()=>w.remove(),200)};
   w.addEventListener('click',e=>{const b=e.target.closest('.shi');if(b){close();cb&&cb(items[+b.dataset.i])}else if(e.target.classList.contains('shb'))close()});
 }
@@ -716,6 +723,8 @@ const coverId=im=>{const cv=im&&im.closest&&im.closest('.cv');return cv&&cv.pare
 document.addEventListener('error',e=>{const im=e.target;if(!im||im.tagName!=='IMG')return;const cv=im.closest&&im.closest('.cv');if(!cv)return;const id=coverId(im);im.style.visibility='hidden';cv.classList.add('cvfb');const u=id&&THUMBS[id];if(u)cv.style.backgroundImage=`url(${u})`},true);
 document.addEventListener('load',e=>{const im=e.target;if(!im||im.tagName!=='IMG')return;const id=coverId(im);if(!id||THUMBS[id])return;(window.requestIdleCallback||setTimeout)(()=>tinyCover(im.currentSrc||im.src).then(u=>{if(u&&!THUMBS[id]){THUMBS[id]=u;saveThumbs()}}))},true);
 addEventListener('online',()=>{document.querySelectorAll('.cv.cvfb').forEach(cv=>{const im=cv.querySelector('img');if(!im)return;im.style.visibility='';cv.classList.remove('cvfb');cv.style.backgroundImage='';const s=im.src;im.removeAttribute('src');im.src=s})});
+const SEAS_C=['#a78bfa','#22d3ee','#fbbf24','#f472b6','#34d399','#fb923c','#60a5fa','#f87171'];
+const seasonColor=n=>SEAS_C[(Math.max(1,n)-1)%SEAS_C.length];
 const newest=s=>s.la&&s.la.n&&s.la.t?(Date.now()-s.la.t<1728e5?'<span class="nw">EP '+s.la.n+'</span>':''):(s.ts&&Date.now()-s.ts<1728e5?'<span class="nw">NEW</span>':'');
 function feedList(){
   let l=[...S.series];const q=S.q.trim().toLowerCase();
@@ -868,7 +877,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${(isApp()&&DL_ON)?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.mode==='dev'||S.kind==='manager')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="devs"><span>Devices</span><em>Manage &rsaquo;</em></div><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${isAndroidApp()?`<div class="row" data-act="bg"><span>Run in background</span><em>${store.get('strm.bgOn',false)?'On':'Off'} ›</em></div>`:''}${(isApp()&&DL_ON)?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.mode==='dev'||S.kind==='manager')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="devs"><span>Devices</span><em>Manage &rsaquo;</em></div><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
 }
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
@@ -1418,10 +1427,10 @@ function drawDetail(){
   const body=D.tab==='comm'?'<div id="cmwrap"></div>':`<div class="grid">${rec.map(x=>card(x)).join('')}</div>`;
   const dsc0=$('#dsc'),chipX=(dsc0.querySelector('.chips')||{}).scrollLeft||0,dscY=dsc0.scrollTop;
   $('#dsc').innerHTML=`<h2 class="dtitle">${esc(s.title)} <small>[${esc(labelOf(s,D.lang,ep))}]</small><button data-act="d-info">Info ›</button></h2>
-  <div class="meta"><span class="st">${ic('star',14)}${s.star?esc(s.star):(s.views>0?s.views+' views':'New')}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
+  <div class="meta"><span class="st">${ic('star',14)}${s.star?esc(s.star):(s.views>0?s.views+' views':'New')}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span class="ssn">${s.seasons.slice(0,8).map((_,i)=>`<i style="--sc:${seasonColor(i+1)}"></i>`).join('')}${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
   <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In Watchlist':'Add to Watchlist'}</button>${(D.offline||!isApp()||!DL_ON)?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
   <h3>Resources<small>Uploaded by ${esc(s.by||'Streamly')}</small></h3>
-  <div class="dd"><button data-act="d-season">Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length>1?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))} ${ic('chev',16)}</button>`:''}</div>
+  <div class="dd"><button data-act="d-season" class="sbtn" style="--sc:${seasonColor(D.s)}"><i class="sdot" style="--sc:${seasonColor(D.s)}"></i>Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length>1?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))} ${ic('chev',16)}</button>`:''}</div>
   <div class="lbl">${langs.length>1?'Episodes in '+esc(labelOf(s,D.lang,ep)):'Episodes'}</div><div class="chips">${chips}</div>${all}
   <div class="dtabs"><button data-act="d-tab" data-v="for" class="${D.tab==='for'?'on':''}">For you</button><button data-act="d-tab" data-v="comm" class="${D.tab==='comm'?'on':''}">Comments</button></div>${body}`;
   {const c2=$('#dsc .chips');if(c2)c2.scrollLeft=chipX;$('#dsc').scrollTop=dscY}
@@ -1530,15 +1539,42 @@ async function setupPush(){
     await NP('PushNotifications','register');
   }catch(e){}
 }
+const isAndroidApp=()=>NATIVE&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='android';
+let bgBusy=false;
+async function bgFlow(force){
+  if(!isAndroidApp()||bgBusy)return;
+  bgBusy=true;
+  try{
+    const st=await IMM('bgStatus').catch(()=>null);
+    const on=!!(st&&st.ignoring);store.set('strm.bgOn',on);
+    const maker=(st&&st.maker)||'';
+    const oem=/xiaomi|redmi|poco|oppo|realme|oneplus|vivo|iqoo|huawei|honor|infinix|tecno|itel|samsung/.test(maker);
+    const more=async()=>{const w=await ctrDialog({title:'One more step',text:'Some phones still stop apps after they are closed. Tap Open settings, then turn on <b>Auto-start</b> (or <b>Allow background activity</b>) and set Battery to <b>Unrestricted</b> for Streamly.',buttons:[{t:'Open settings',primary:true},{t:'Skip'}]});if(w===0)await IMM('appSettings').catch(()=>{})};
+    if(on){if(force){toast('Streamly is already allowed to run in the background.');await more()}bgBusy=false;return}
+    if(!force&&store.get('strm.bgAsked',false)){bgBusy=false;return}
+    store.set('strm.bgAsked',true);
+    const v=await ctrDialog({title:'Keep Streamly running in the background',text:'Allow Streamly to run in the background so new episodes and chat messages reach you instantly, even after you close the app. It uses very little battery.',buttons:[{t:'Allow',primary:true},{t:'Not now'}]});
+    if(v===0){
+      await IMM('bgRequest').catch(()=>{});
+      setTimeout(async()=>{try{const r=await IMM('bgStatus');store.set('strm.bgOn',!!(r&&r.ignoring))}catch(e){}},4000);
+      if(oem)await more();
+    }
+  }catch(e){}
+  bgBusy=false;
+}
 async function permFlow(){
   if(!NATIVE||!TOKEN||permBusy)return;
   permBusy=true;
   try{
-    const n=store.get('strm.notifOk',null);
+    let n=store.get('strm.notifOk',null);
+    // after this update, ask once more if notifications were switched off before
+    if(n===false&&store.get('strm.permV','')!==APP_VERSION){n=null}
+    store.set('strm.permV',APP_VERSION);
     if(n===null){
       const v=await ctrDialog({title:'Allow notifications',text:'Get a notification on your phone when a new episode is added or someone sends a message, even when the app is closed.',buttons:[{t:'Allow',primary:true},{t:'Not now'}]});
       if(v===0)await enableNotifications();else if(v===1)store.set('strm.notifOk',false);
     }else if(n===true)setupPush();
+    if(store.get('strm.notifOk',null)===true)await bgFlow(false);
     if(DL_ON&&!store.get('strm.dlOk',false)&&!store.get('strm.storAsked',false)){
       const ok=await askStorage(0);store.set('strm.storAsked',true);if(ok)store.set('strm.dlOk',true);
     }
@@ -1672,7 +1708,7 @@ const ACT={
     else confirmDelete('Delete "'+s.title+'"?','All seasons, episodes and video files',()=>deleteSeries(s.id))})},
   'd-langchip':t=>setLang(t.dataset.v),
   'd-lang':()=>{if(D.offline)return;const s=cur(),ep=epObj(s,D.s,D.n),ls=seasonLangs(s,D.s);if(ls.length<2)return;sheet('Language',ls.map(l=>({t:labelOf(s,l,ep),v:l,on:l===D.lang})),it=>{if(it.v!==D.lang)setLang(it.v)})},
-  'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,on:i+1===D.s})),it=>pickSeason(it.v),undefined,true)},
+  'd-season':()=>{const s=cur();sheet('Season',s.seasons.map((se,i)=>({t:'Season '+pad(i+1),s:se.eps.length+' episodes',v:i+1,c:seasonColor(i+1),on:i+1===D.s})),it=>pickSeason(it.v),undefined,true)},
   'd-chip':t=>{const v=t.dataset.v;if(v==='all'){epPopup();return}else{if(!epLangs(epObj(cur(),D.s,+v)).length){toast('This episode is still being prepared. Please check back soon.');return}D.n=+v;D.chip=+v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp()}drawDetail()},
   'd-ep':t=>{D.n=+t.dataset.v;const ls=epLangs(epObj(cur(),D.s,D.n));if(!ls.includes(D.lang))D.lang=ls[0];loadEp();drawDetail()},
   'd-tab':t=>{D.tab=t.dataset.v;drawDetail()},
@@ -1699,6 +1735,7 @@ const ACT={
   hist:historyModal,
   hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>{const i=$('#q');if(i)i.focus()},260)},
   stor:async()=>{if(store.get('strm.dlOk',false)){store.set('strm.dlOk',false);toast('Storage is off. Downloads are paused.')}else{if(await askStorage(0)){store.set('strm.dlOk',true);store.set('strm.storAsked',true)}}drawMe()},
+  bg:async()=>{await bgFlow(true);drawMe()},
   notif:async()=>{if(NATIVE){if(store.get('strm.notifOk',null)===true){store.set('strm.notifOk',false);try{await api('/api/push/unregister',{json:{token:store.get('strm.pushTok','')}})}catch(e){}toast('Notifications are off')}else{await enableNotifications()}drawMe();return}if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
   hub:()=>{if(NATIVE||location.protocol==='file:'){openDl();return}location.href='downloads.html'},
   apk:()=>{location.href=APK_FILE+'?v='+Date.now()},
