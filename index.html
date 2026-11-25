@@ -472,7 +472,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='4.6';
+const APP_VERSION='4.7';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -1497,8 +1497,9 @@ const SITE='https://johnmarstonxz.github.io/Streamly-Web/';
 const VER_URL=((NATIVE||location.protocol==='file:')?SITE:'')+'version.json';
 function vcmp(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0?1:-1}return 0}
 let updShown=false;
-const FORCE_AFTER=3;
-const updCount=v=>{const o=store.get('strm.updLater',{});return o&&o.v===v?(o.n||0):0};
+// the app: first popup has Later; after Later the popup comes back exactly 5 minutes later without Later (Update or Exit)
+const LATER_MS=5*60*1000;
+const laterAt=v=>{const o=store.get('strm.updLaterAt',null);return o&&o.v===v?(+o.t||0):0};
 const closeApp=()=>{if(NATIVE){NP('App','exitApp').catch(()=>{try{window.close()}catch(e){}});return}try{window.close()}catch(e){}};
 async function checkUpdate(){
   if(updShown||!navigator.onLine||$('.shw.lock'))return;
@@ -1506,8 +1507,12 @@ async function checkUpdate(){
     const r=await fetch(VER_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
     if(!j||vcmp(j.version,APP_VERSION)<=0)return;
     const installed=NATIVE||location.protocol==='file:';
-    const must=!!j.force||(installed&&updCount(j.version)>=FORCE_AFTER);
-    if(!must&&store.get('strm.updSkip','')===j.version&&Date.now()<store.get('strm.updUntil',0))return;
+    let must=!!j.force;
+    const t=installed?laterAt(j.version):0;
+    if(t){
+      if(Date.now()<t+LATER_MS){setTimeout(checkUpdate,t+LATER_MS-Date.now()+300);return}
+      must=true;
+    }else if(!installed&&!must&&store.get('strm.updSkip','')===j.version&&Date.now()<store.get('strm.updUntil',0))return;
     showUpdate(j,must);
   }catch(e){}
 }
@@ -1603,12 +1608,11 @@ function pickSeason(n){
 function showUpdate(j,must){
   updShown=true;
   const installed=NATIVE||location.protocol==='file:';
-  const left=installed?FORCE_AFTER-updCount(j.version):0;
   const w=el(must
-    ?`<div class="shw lock" id="forceupd" style="z-index:990"><div class="shb" style="background:#07050c;opacity:1"></div><div class="sh" style="text-align:center;padding:26px 22px calc(22px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:14px 0 4px;font-size:1.2rem">Update required</h4><p class="sub" style="padding:0 0 18px;font-size:.92rem">Please update Streamly to the latest version to keep using the app.</p><button class="cta" style="width:100%" data-i="up">Update now</button>${installed?'<button class="btn2" style="width:100%;margin-top:10px" data-i="close">Close app</button>':''}</div></div>`
-    :`<div class="shw" style="z-index:950"><div class="shb"></div><div class="sh" style="text-align:center;padding:24px 20px calc(20px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:14px 0 4px;font-size:1.2rem">New update available</h4><p class="sub" style="padding:0 0 18px;font-size:.92rem">A new version of Streamly is ready. Update now to keep everything running smoothly.</p><button class="cta" style="width:100%" data-i="up">Update now</button><button class="btn2" style="width:100%;margin-top:10px" data-i="later">Later</button>${installed&&left===1?'<p class="sub" style="padding:10px 0 0;font-size:.78rem">This is the last time you can skip this update.</p>':''}</div></div>`);
+    ?`<div class="shw lock" id="forceupd" style="z-index:990"><div class="shb" style="background:#07050c;opacity:1"></div><div class="sh" style="text-align:center;padding:26px 22px calc(22px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:14px 0 4px;font-size:1.2rem">Update required</h4><p class="sub" style="padding:0 0 18px;font-size:.92rem">A new version of Streamly is available. To continue using the app, please update it now.</p><button class="cta" style="width:100%" data-i="up">Update the app</button>${installed?'<button class="btn2" style="width:100%;margin-top:10px" data-i="close">Exit the app</button>':''}</div></div>`
+    :`<div class="shw" style="z-index:950"><div class="shb"></div><div class="sh" style="text-align:center;padding:24px 20px calc(20px + env(safe-area-inset-bottom,0px))"><div style="display:flex;justify-content:center">${logo(64)}</div><h4 style="margin:14px 0 4px;font-size:1.2rem">New update available</h4><p class="sub" style="padding:0 0 18px;font-size:.92rem">A new version of Streamly is ready. Update now to keep everything running smoothly.</p><button class="cta" style="width:100%" data-i="up">Update now</button><button class="btn2" style="width:100%;margin-top:10px" data-i="later">Later</button>${installed?'<p class="sub" style="padding:10px 0 0;font-size:.78rem">If you choose Later, we will remind you in 5 minutes. After that, the update is required to continue.</p>':''}</div></div>`);
   app.appendChild(w);
-  const later=()=>{store.set('strm.updLater',{v:j.version,n:updCount(j.version)+1});store.set('strm.updSkip',j.version);store.set('strm.updUntil',Date.now()+864e5);w.remove();updShown=false};
+  const later=()=>{if(installed){store.set('strm.updLaterAt',{v:j.version,t:Date.now()});setTimeout(checkUpdate,LATER_MS+300)}else{store.set('strm.updSkip',j.version);store.set('strm.updUntil',Date.now()+864e5)}w.remove();updShown=false};
   w.addEventListener('click',e=>{
     if(!must&&e.target.classList.contains('shb')){later();return}
     const b=e.target.closest('[data-i]');if(!b)return;
