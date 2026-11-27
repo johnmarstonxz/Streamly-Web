@@ -395,6 +395,16 @@ img{-webkit-user-drag:none}
 .srch .mi{display:block;width:100%;text-align:left;padding:13px 6px;font-size:1.02rem;color:var(--tx);border-bottom:1px solid var(--line)}
 .srp .grid{padding:12px 0}
 .sech{margin:14px 0 2px;font-size:1rem}
+@media (min-width:760px){.srp .mh,.srp .mbody{max-width:none;margin-left:0;margin-right:0;width:100%}.srp .mh{padding-left:22px;padding-right:22px}.srp .mbody{padding-left:26px;padding-right:26px}}
+/* v5.0: profile photo editor */
+.cropw{position:absolute;inset:0;z-index:700;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.88)}
+.cropb{width:min(380px,100%);text-align:center;color:#fff}
+.cropb h3{margin:0 0 4px}.cropb p{margin:0 0 14px;font-size:.82rem;opacity:.7}
+.cropst{position:relative;width:min(76vw,320px);aspect-ratio:1;margin:0 auto;overflow:hidden;border-radius:14px;background:#000;touch-action:none;cursor:grab;user-select:none}
+.cropst img{position:absolute;max-width:none;pointer-events:none;user-select:none}
+.cropm{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.62);border:2px solid rgba(255,255,255,.85);pointer-events:none}
+.cropb input[type=range]{width:min(76vw,320px);margin:16px 0 4px;accent-color:var(--acc)}
+.cropbt{display:flex;gap:10px;margin-top:12px}.cropbt button{flex:1}
 /* v5.0: small floating window (picture in picture) */
 #pipup{display:none;position:fixed;inset:0;z-index:99999;background:#0e0a16;color:#fff;align-items:center;justify-content:center;padding:8px}
 .pipc{width:100%;text-align:center}.pipt{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;opacity:.7}.pipp{font-size:2rem;font-weight:700;line-height:1.1;margin:2px 0 6px}
@@ -693,6 +703,52 @@ function renderGate(msg){
   $('#unlock').onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go()};
 }
 const daysLeft=k=>Math.max(0,Math.ceil((store.get(k,0)+7*864e5-Date.now())/864e5));
+/* profile photo editor: the photo is moved and zoomed inside a round frame, then saved as a sharp 512 x 512 picture */
+function cropPhoto(file){
+  return new Promise(res=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onerror=()=>{URL.revokeObjectURL(url);toast('This photo could not be opened');res(null)};
+    img.onload=()=>{
+      const iw=img.naturalWidth,ih=img.naturalHeight;
+      const w=el(`<div class="cropw"><div class="cropb"><h3>Adjust your photo</h3><p>Drag to move. Pinch, scroll or use the slider to zoom.</p><div class="cropst" id="cst"><img alt="" draggable="false"><div class="cropm"></div></div><input type="range" id="czm" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><div class="cropbt"><button class="btn2" id="ccx">Cancel</button><button class="cta" id="cok">Done</button></div></div></div>`);
+      app.appendChild(w);
+      const st=$('#cst',w),im=$('img',st),zm=$('#czm',w);im.src=url;
+      const size=()=>st.clientWidth||300,cover=()=>Math.max(size()/iw,size()/ih);
+      let sc=1,ox=0,oy=0;
+      const clamp=()=>{const z=size(),d=cover()*sc;ox=Math.min(0,Math.max(z-iw*d,ox));oy=Math.min(0,Math.max(z-ih*d,oy))};
+      const apply=()=>{clamp();const d=cover()*sc;im.style.width=iw*d+'px';im.style.height=ih*d+'px';im.style.left=ox+'px';im.style.top=oy+'px'};
+      const setScale=n=>{const z=size(),c=z/2,o=cover()*sc;n=Math.min(4,Math.max(1,n));const px=(c-ox)/o,py=(c-oy)/o,d=cover()*n;sc=n;ox=c-px*d;oy=c-py*d;zm.value=n;apply()};
+      ox=(size()-iw*cover())/2;oy=(size()-ih*cover())/2;apply();
+      zm.oninput=()=>setScale(+zm.value);
+      st.addEventListener('wheel',e=>{e.preventDefault();setScale(sc*Math.exp(-e.deltaY*0.0015))},{passive:false});
+      const ptr=new Map();let last=0;
+      st.addEventListener('pointerdown',e=>{st.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});last=0;st.style.cursor='grabbing'});
+      st.addEventListener('pointermove',e=>{
+        if(!ptr.has(e.pointerId))return;const p=ptr.get(e.pointerId),dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+        if(ptr.size===1){ox+=dx;oy+=dy;apply()}
+        else if(ptr.size===2){const [a,b]=[...ptr.values()],dist=Math.hypot(a.x-b.x,a.y-b.y);if(last)setScale(sc*dist/last);last=dist}
+      });
+      const up=e=>{ptr.delete(e.pointerId);last=0;st.style.cursor='grab'};
+      st.addEventListener('pointerup',up);st.addEventListener('pointercancel',up);
+      const close=r=>{URL.revokeObjectURL(url);w.remove();res(r)};
+      $('#ccx',w).onclick=()=>close(null);
+      $('#cok',w).onclick=()=>{
+        const z=size(),d=cover()*sc,OUT=512,sx=-ox/d,sy=-oy/d,sw=z/d;
+        const q2=c=>{const x=c.getContext('2d');x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';return x};
+        let cur=document.createElement('canvas');
+        if(sw<=OUT){cur.width=cur.height=OUT;const x=q2(cur);x.fillStyle='#fff';x.fillRect(0,0,OUT,OUT);x.drawImage(img,sx,sy,sw,sw,0,0,OUT,OUT)}
+        else{
+          let n=Math.round(sw);cur.width=cur.height=n;const x=q2(cur);x.fillStyle='#fff';x.fillRect(0,0,n,n);x.drawImage(img,sx,sy,sw,sw,0,0,n,n);
+          while(n/2>=OUT){const h=Math.round(n/2),nc=document.createElement('canvas');nc.width=nc.height=h;q2(nc).drawImage(cur,0,0,n,n,0,0,h,h);cur=nc;n=h}
+          if(n!==OUT){const nc=document.createElement('canvas');nc.width=nc.height=OUT;q2(nc).drawImage(cur,0,0,n,n,0,0,OUT,OUT);cur=nc}
+        }
+        let out='';for(let q=.93;q>=.55;q-=.06){out=cur.toDataURL('image/jpeg',q);if(out.length<=190000)break}
+        close(out);
+      };
+    };
+    img.src=url;
+  });
+}
 function nameDialog(first){
   $$('.dlgw').forEach(n=>n.remove());
   const w=el(`<div class="dlgw ${first?'first':''}"><div class="dlgb"></div><div class="dlg"><div class="dlgav" id="dav"></div><h3>${first?'Add your name':'Edit profile'}</h3><p>${first?'Choose the name and photo other people will see in chats and comments.':'You can change your name and your photo once every 7 days.'}</p><input class="inp" id="dnm" maxlength="24" placeholder="Your name" value="${esc(S.set.name==='Guest'?'':S.set.name)}" autocomplete="off"><button class="cta" id="dsv" style="width:100%;margin-top:14px">Save</button>${first?'':'<button class="btn2" id="dcx" style="width:100%;margin-top:8px">Cancel</button>'}<input type="file" id="dph" accept="image/*" hidden></div></div>`);
@@ -701,7 +757,7 @@ function nameDialog(first){
   const av=()=>{const nm=($('#dnm',w).value||S.set.name||'?').trim();$('#dav',w).innerHTML=photo?`<img src="${photo}" alt="">`:`<span>${esc((nm[0]||'?').toUpperCase())}</span><i>${ic('plus',16)}</i>`};
   av();$('#dnm',w).addEventListener('input',()=>{if(!photo)av()});
   $('#dav',w).onclick=()=>$('#dph',w).click();
-  $('#dph',w).onchange=e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=120;const x=c.getContext('2d');const r=Math.max(120/img.width,120/img.height);x.drawImage(img,(120-img.width*r)/2,(120-img.height*r)/2,img.width*r,img.height*r);photo=c.toDataURL('image/jpeg',.8);changedPhoto=true;av()};img.src=URL.createObjectURL(f)};
+  $('#dph',w).onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=await cropPhoto(f);if(!r)return;photo=r;changedPhoto=true;av()};
   const cx=$('#dcx',w);if(cx)cx.onclick=()=>w.remove();
   $('.dlgb',w).onclick=()=>{if(!first)w.remove()};
   $('#dsv',w).onclick=()=>{
