@@ -382,6 +382,32 @@ img{-webkit-user-drag:none}
 .sdot{width:10px;height:10px;border-radius:50%;background:var(--sc);flex:none;display:inline-block;box-shadow:0 0 0 3px color-mix(in srgb,var(--sc) 26%,transparent)}
 .shw .shi.sc{box-shadow:inset 3px 0 0 var(--sc)}
 .shw .shi.sc.on{background:color-mix(in srgb,var(--sc) 22%,transparent);box-shadow:inset 3px 0 0 var(--sc);color:inherit}
+/* v5.0: search pages */
+.modal.srch,.modal.srp{z-index:40}
+.srch .sh2{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.srch .sbody{flex:1;display:flex;flex-direction:column;min-height:0}
+.srch .sp{flex:1 1 0}
+.srch .sugbox{flex:1 1 0;min-height:0;overflow-y:auto;padding:0 22px 24px;text-align:center}
+.srch .sugt{color:var(--tx2);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 8px}
+.srch .sugi{display:block;width:100%;padding:11px 8px;font-size:1.02rem;color:var(--tx);border-radius:10px}
+.srch .sugi:active,.srch .mi:active{background:var(--sf)}
+.srch .mlist{overflow-y:auto;padding:6px 16px}
+.srch .mi{display:block;width:100%;text-align:left;padding:13px 6px;font-size:1.02rem;color:var(--tx);border-bottom:1px solid var(--line)}
+.srp .grid{padding:12px 0}
+.sech{margin:14px 0 2px;font-size:1rem}
+/* v5.0: small floating window (picture in picture) */
+#pipup{display:none;position:fixed;inset:0;z-index:99999;background:#0e0a16;color:#fff;align-items:center;justify-content:center;padding:8px}
+.pipc{width:100%;text-align:center}.pipt{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;opacity:.7}.pipp{font-size:2rem;font-weight:700;line-height:1.1;margin:2px 0 6px}
+.pipb{height:6px;border-radius:6px;background:rgba(255,255,255,.18);overflow:hidden}.pipb i{display:block;height:100%;width:0;background:#8b5cf6;border-radius:6px}.pipm{font-size:.62rem;opacity:.75;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.pip body{background:#000}
+html.pip .view,html.pip .modal,html.pip .shw,html.pip .toast,html.pip .mb,html.pip .amb,html.pip #app::before{display:none!important}
+html.pip #detail{padding:0!important}
+html.pip #detail::before{display:none}
+html.pip #detail .dscroll{display:none!important}
+html.pip #detail .player{position:fixed;inset:0;width:100%;height:100%;aspect-ratio:auto}
+html.pip .ctl{display:none!important}
+html.pip:not(.pvid) #detail{display:none!important}
+html.pip:not(.pvid) #pipup.on{display:flex}
 /* v4.9: the whole app has the same size as the video page (the video page itself keeps its own size) */
 #root>*,.modal,.shw,.toast{zoom:.92}
 html.and .view,html.and .modal{padding-top:calc(var(--sat,0px)/.92)}
@@ -476,7 +502,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='4.9';
+const APP_VERSION='5.0';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -740,7 +766,7 @@ function feedList(){
 }
 function drawGrid(){const l=feedList();$('#grid').innerHTML=l.length?l.map(s=>card(s,newest(s))).join(''):`<div class="empty" style="grid-column:1/-1"><b>${S.series.length?(S.q?'No results':'Nothing here yet'):'No videos yet'}</b>${S.series.length?(S.q?'Try another title or genre.':'Videos added to this section will show up here.'):(S.mode==='dev'?'Open the Upload tab and tap Add New.':'New videos from the developer will show up here.')}</div>`}
 function drawHome(){
-  $('#feedbar').innerHTML=`<div class="sfix"><div class="search"><span class="hlogo">${logo(34)}</span><div class="sbox">${ic('search',18)}<input id="q" placeholder="Search videos" value="${esc(S.q)}" enterkeyhint="search" autocomplete="off"></div>${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span></div></div>`;
+  $('#feedbar').innerHTML=`<div class="sfix"><div class="search"><span class="hlogo">${logo(34)}</span><div class="sbox" data-act="osearch">${ic('search',18)}<input id="q" placeholder="Search videos" readonly inputmode="none" autocomplete="off"></div>${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span></div></div>`;
   $('#content').innerHTML=`<div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${S.feed==='foryou'?langChips():''}</div><div class="grid" id="grid"></div>`;
   drawGrid();
 }
@@ -881,7 +907,7 @@ function drawMe(){
     if(ty==='info')return`<div class="row" style="cursor:default"><span>${t}</span><em>${k==='_ver'?'Streamly '+APP_VERSION:mb(S.downloads.reduce((a,d)=>a+d.got,0))+' MB'}</em></div>`;
     return`<div class="row act" data-act="act" data-k="${k}"><span>${t}</span></div>`}).join('')}</div></div>`).join('');
   $('#content').innerHTML=`<h2 class="pt">Me</h2><div class="prof"><div class="avatar" data-act="photo">${st.photo?`<img src="${st.photo}" alt="">`:esc((st.name||'?')[0].toUpperCase())}</div><div class="n"><b>${esc(st.name)}</b><small>${S.mode==='dev'?'Developer mode':(S.tag==='friend'?'Friend Mode':'Customer Mode')}</small></div><button class="tag" data-act="editname">Edit name</button></div><input type="file" id="photoin" accept="image/*" hidden>
-  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${isAndroidApp()?`<div class="row" data-act="bg"><span>Run in background</span><em>${store.get('strm.bgOn',false)?'On':'Off'} ›</em></div>`:''}${(isApp()&&DL_ON)?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.mode==='dev'||S.kind==='manager')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="devs"><span>Devices</span><em>Manage &rsaquo;</em></div><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
+  <div class="grp"><h4>Account</h4><div class="box">${(NATIVE||typeof Notification!=='undefined')?`<div class="row" data-act="notif"><span>Notifications</span><em>${NATIVE?(store.get('strm.notifOk',null)===true?'On':(store.get('strm.notifOk',null)===false?'Off':'Turn on')):(Notification.permission==='granted'?'On':(Notification.permission==='denied'?'Blocked':'Turn on'))} ›</em></div>`:''}${isAndroidApp()?`<div class="row" data-act="bg"><span>Run in background</span><em>${store.get('strm.bgOn',false)?'On':'Off'} ›</em></div>`:''}${(isApp()&&DL_ON)?`<div class="row" data-act="stor"><span>Storage for downloads</span><em>${store.get('strm.dlOk',false)?'On':'Off'} ›</em></div>`:''}<div class="row" data-act="hist"><span>History</span><em>Continue watching ›</em></div><div class="row" data-act="photo"><span>Profile photo</span><em>Change ›</em></div>${S.kind==='dev'?`<div class="row" data-act="mode"><span>Developer mode</span><i class="sw ${S.mode==='dev'?'on':''}"></i></div>`:''}${(S.kind==='manager'&&S.mode!=='dev')?`<div class="row" data-act="ckeys"><span>Control keys</span><em>Manage ›</em></div>`:''}<div class="row" data-act="hub"><span>Download the app</span><em>All devices &rsaquo;</em></div><div class="row" style="cursor:default"><span>Access key</span><em>${esc(un.mask||'')}</em></div></div></div>${S.mode==='dev'?`<div class="grp"><h4>Developer tools</h4><div class="box"><div class="row" data-act="ckeys"><span>Control keys</span><em>Manage &rsaquo;</em></div><div class="row" data-act="devs"><span>Devices</span><em>Manage &rsaquo;</em></div><div class="row" data-act="dstorage"><span>Server storage</span><em>Check ›</em></div><div class="row act" data-act="dclean"><span>Cancel unfinished uploads</span></div></div></div>`:''}${grp}<div class="grp"><div class="box"><div class="row act" data-act="logout"><span>Logout</span></div></div></div><div style="height:24px"></div>`;
   if(isAndroidApp())bgRefresh();
 }
 /* ---------- developer: upload / manage / delete ---------- */
@@ -1156,7 +1182,7 @@ function uploadForm(mode,sr,ctx){
     ${U.err?`<div class="err" style="margin-top:12px">${esc(U.err)}</div>`:''}
     <button class="cta" style="width:100%;margin-top:22px" data-u="go" ${ok()&&!U.busy?'':'disabled'}>${U.busy?'Uploading… keep the app open':'Upload'}</button>`;
   };
-  const prog=(pct,msg)=>{U.pct=pct;U.msg=msg;const i=$('.prog .bar i',m),t=$('#upm',m);if(i)i.style.width=pct+'%';if(t)t.textContent=msg};
+  const prog=(pct,msg)=>{U.pct=pct;U.msg=msg;pipUp(pct,msg);const i=$('.prog .bar i',m),t=$('#upm',m);if(i)i.style.width=pct+'%';if(t)t.textContent=msg};
   draw();
   m.addEventListener('input',e=>{
     if(e.target.id==='ust'){U.star=e.target.value;return}
@@ -1173,7 +1199,7 @@ function uploadForm(mode,sr,ctx){
   });
   $('#cf',m).addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=300;c.height=410;const x=c.getContext('2d');const r=Math.max(300/img.width,410/img.height);x.drawImage(img,(300-img.width*r)/2,(410-img.height*r)/2,img.width*r,img.height*r);U.cover=c.toDataURL('image/jpeg',.82);U.coverNew=true;draw()};img.src=URL.createObjectURL(f)});
   async function run(){
-    U.busy=true;U.err='';draw();
+    U.busy=true,UPSTATE.on=true;U.err='';draw();
     try{
       const groups=[],byFile=new Map();
       U.langs.forEach(l=>{const f=U.fm[l];let g=byFile.get(f.file);if(!g){g={file:f.file,fq:f.fq,tracks:[]};byFile.set(f.file,g);groups.push(g)}g.tracks.push({lang:l,idx:f.track||0})});
@@ -1182,8 +1208,8 @@ function uploadForm(mode,sr,ctx){
         const r=await uploadFile(g.file,loaded=>{const x=done+loaded,sp=x/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,x/all*100),`Uploading ${g.tracks.map(t=>t.lang).join(' + ')} ${g.fq}p · ${mb(x)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
         g.name=r.name;done+=g.file.size;
       }
-      prog(99,'Saving…');await commit(groups);
-    }catch(e){U.busy=false;U.err=(e&&e.error)||(e&&e.offline?'Connection lost. Tap Upload to continue where it stopped.':'Upload failed. Tap Upload to continue.');draw()}
+      prog(99,'Saving…');await commit(groups);UPSTATE.on=false;
+    }catch(e){U.busy=false,UPSTATE.on=false;U.err=(e&&e.error)||(e&&e.offline?'Connection lost. Tap Upload to continue where it stopped.':'Upload failed. Tap Upload to continue.');draw()}
   }
   async function commit(groups){
     const cloud=await encOk();
@@ -1260,6 +1286,43 @@ function devicesModal(){
     if(t.dataset.u==='blk'){const h=t.dataset.h,on=t.dataset.a==='1',nm=t.dataset.n;
       if(!on){try{await api('/api/keys/'+h,{json:{active:1}});toast('Unblocked');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
       sheet('Block '+nm+'?',[{t:'Block and log out',s:'They cannot use the app until you unblock',v:'b'}],async()=>{try{await api('/api/keys/'+h,{json:{active:0}});toast('Blocked. That person is signed out.');draw()}catch(er){toast((er&&er.error)||'Failed')}})}});
+}
+/* ---------- search ---------- */
+const normT=s=>String(s||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+const trigrams=s=>{const t=new Set(),x='  '+s+'  ';for(let i=0;i<x.length-2;i++)t.add(x.slice(i,i+3));return t};
+function simScore(title,q){
+  const a=normT(title),b=normT(q);if(!a||!b)return 0;
+  if(a===b)return 100;if(a.startsWith(b))return 90;if(a.includes(b))return 80;if(a.length>=3&&b.includes(a))return 70;
+  const tok=t=>String(t).toLowerCase().match(/\p{L}+|\p{N}+/gu)||[],tb=tok(q);
+  if(tok(title).some(x=>x.length>=3&&tb.includes(x)))return 58;
+  let cp=0;while(cp<a.length&&cp<b.length&&a[cp]===b[cp])cp++;
+  if(cp>=4)return 52;
+  const A=trigrams(a),B=trigrams(b);let n=0;A.forEach(x=>{if(B.has(x))n++});
+  const j=n/(A.size+B.size-n);return j>=.3?Math.round(j*60):0;
+}
+const similar=q=>S.series.map(s=>({s,sc:simScore(s.title,q)})).filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc||(b.s.ts||0)-(a.s.ts||0)).map(x=>x.s);
+function openSearch(){
+  if($('.modal.srch'))return;
+  const m=el(`<div class="modal srch"><div class="sh2"><button class="ib" data-s="x" aria-label="Back">${ic('back',22)}</button><div class="sbox">${ic('search',18)}<input id="sq" placeholder="Search videos" enterkeyhint="search" autocomplete="off"></div></div><div class="sbody" id="sbody"></div></div>`);
+  app.appendChild(m);
+  const inp=$('#sq',m),body=$('#sbody',m);
+  const sugList=shuffle(S.series).slice(0,8);
+  const sugHTML=()=>`<div class="sugt">Suggestions</div>${sugList.length?sugList.map(x=>`<button class="sugi" data-s="go" data-t="${esc(x.title)}">${esc(x.title)}</button>`).join(''):'<p class="sub">No videos yet</p>'}`;
+  const drawSug=()=>{body.innerHTML=`<div class="sp"></div><div class="sugbox">${sugHTML()}</div>`};
+  const drawMatches=q=>{
+    const l=similar(q).slice(0,12);
+    body.innerHTML=l.length?`<div class="mlist">${l.map(x=>`<button class="mi" data-s="go" data-t="${esc(x.title)}">${esc(x.title)}</button>`).join('')}</div>`:`<div class="mlist"><p class="sub" style="padding:14px 4px">No matching title</p></div><div class="sugbox" style="flex:none">${sugHTML()}</div>`;
+  };
+  inp.addEventListener('input',()=>{const q=inp.value.trim();q?drawMatches(q):drawSug()});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const q=inp.value.trim();if(q){inp.blur();openResults(q)}}});
+  m.addEventListener('click',e=>{const t=e.target.closest('[data-s]');if(!t)return;if(t.dataset.s==='x')m.remove();else if(t.dataset.s==='go')openResults(t.dataset.t)});
+  drawSug();setTimeout(()=>inp.focus(),150);
+}
+function openResults(q){
+  const l=similar(q),ids=new Set(l.map(x=>x.id)),more=shuffle(S.series.filter(x=>!ids.has(x.id))).slice(0,9);
+  const m=el(`<div class="modal srp"><div class="mh"><button class="ib" data-s="x" aria-label="Back">${ic('back',22)}</button><b>${esc(q)}</b></div><div class="mbody">${l.length?`<h4 class="sech">Similar to “${esc(q)}”</h4><div class="grid">${l.map(x=>card(x,newest(x))).join('')}</div>`:'<div class="empty"><b>No matching title</b>Here are some other videos you may like.</div>'}${more.length?`<h4 class="sech">You may also like</h4><div class="grid">${more.map(x=>card(x,newest(x))).join('')}</div>`:''}</div></div>`);
+  app.appendChild(m);
+  m.addEventListener('click',e=>{if(e.target.closest('[data-s="x"]'))m.remove()});
 }
 /* ---------- video page + player ---------- */
 let D=null;const PL={q:0,base:1,hideT:0,bufT:0,lpT:0,ratio:S.set.ratio||'16:9',resume:0,sub:'',auto:true,stalls:[],lastSwitch:0,good:0,abrT:0};
@@ -1432,7 +1495,7 @@ function drawDetail(){
   const body=D.tab==='comm'?'<div id="cmwrap"></div>':`<div class="grid">${rec.map(x=>card(x)).join('')}</div>`;
   const dsc0=$('#dsc'),chipX=(dsc0.querySelector('.chips')||{}).scrollLeft||0,dscY=dsc0.scrollTop;
   $('#dsc').innerHTML=`<h2 class="dtitle">${esc(s.title)} <small>[${esc(labelOf(s,D.lang,ep))}]</small><button data-act="d-info">Info ›</button></h2>
-  <div class="meta"><span class="st">${ic('star',14)}${s.star?esc(s.star):(s.views>0?s.views+' views':'New')}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span class="ssn" style="--sc:${seasonColor(D.s)}">${s.seasons.slice(0,8).map((_,i)=>`<i class="${i+1===D.s?'on':''}" style="--sc:${seasonColor(i+1)}"></i>`).join('')}${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
+  <div class="meta"><span class="st">${ic('star',14)}${s.star?esc(s.star):(s.views>0?s.views+' views':'New')}</span>|<span>${s.year||''}</span>${genres.length?`|<span>${esc(genres.join(', '))}</span>`:''}|<span class="ssn" style="--sc:${seasonColor(D.s)}"><i class="on" style="--sc:${seasonColor(D.s)}"></i>${s.seasons.length} season${s.seasons.length>1?'s':''}</span></div>
   <div class="pills"><button data-act="addpl" class="${inPl?'on':''}">${ic(inPl?'check':'list',18)} ${inPl?'In Watchlist':'Add to Watchlist'}</button>${(D.offline||!isApp()||!DL_ON)?'':`<button data-act="d-dl">${ic('download',18)} Download</button>`}${S.kind==='dev'?`<button data-act="d-del" class="pill-red">${ic('trash',18)} Delete</button>`:''}</div>
   <h3>Resources<small>Uploaded by ${esc(s.by||'Streamly')}</small></h3>
   <div class="dd"><button data-act="d-season"><i class="sdot" style="--sc:${seasonColor(D.s)}"></i>Season ${pad(D.s)} ${ic('chev',16)}</button>${langs.length>1?`<button data-act="d-lang">${esc(labelOf(s,D.lang,ep))} ${ic('chev',16)}</button>`:''}</div>
@@ -1550,6 +1613,35 @@ async function setupPush(){
   }catch(e){}
 }
 const isAndroidApp=()=>NATIVE&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='android';
+const UPSTATE={on:false};
+/* picture in picture (small floating window): a playing video for everyone, a running upload for the developer */
+function pipUp(pct,msg){
+  const e=document.getElementById('pipup');if(!e)return;
+  const p=Math.max(0,Math.min(100,Math.round(pct||0)));
+  e.querySelector('.pipp').textContent=p+'%';e.querySelector('.pipb i').style.width=p+'%';
+  e.querySelector('.pipm').textContent=String(msg||'').replace(/^Uploading\s*/,'');
+}
+const pipPlaying=()=>{const v=document.getElementById('vid');return !!(v&&D&&!v.paused&&!v.ended&&v.readyState>2)};
+let pipLast=null;
+function pipSync(){
+  if(!isAndroidApp())return;
+  const playing=pipPlaying(),want=playing||(S.mode==='dev'&&UPSTATE.on);
+  document.documentElement.classList.toggle('pvid',playing);
+  const pu=document.getElementById('pipup');if(pu)pu.classList.toggle('on',!!(S.mode==='dev'&&UPSTATE.on));
+  if(want!==pipLast){pipLast=want;IMM('pip',{on:want}).catch(()=>{})}
+}
+async function pipFlow(){
+  if(!isAndroidApp()||store.get('strm.pipAsked',false))return;
+  store.set('strm.pipAsked',true);
+  const st=await IMM('pipStatus').catch(()=>null);
+  if(st&&st.supported===false)return;
+  const v=await ctrDialog({title:'Picture in picture',text:S.mode==='dev'?'Keep watching a video, or follow your upload, in a small window that you can move around while you use other apps.':'Keep watching your video in a small window that you can move around while you use other apps.',buttons:[{t:'Allow',primary:true},{t:'Not now'}]});
+  if(v===0){if(st&&st.allowed)toast('Picture in picture is on.');else await IMM('pipSettings').catch(()=>{})}
+}
+if(isAndroidApp()){
+  const pu=document.createElement('div');pu.id='pipup';pu.innerHTML='<div class="pipc"><div class="pipt">Uploading</div><div class="pipp">0%</div><div class="pipb"><i></i></div><div class="pipm"></div></div>';document.body.appendChild(pu);
+  setInterval(pipSync,1500);
+}
 let bgBusy=false;
 const bgSleep=ms=>new Promise(r=>setTimeout(r,ms));
 // asks the phone for the real state and updates the "Run in background" row
@@ -1603,6 +1695,7 @@ async function permFlow(){
       if(v===0)await enableNotifications();else if(v===1)store.set('strm.notifOk',false);
     }else if(n===true)setupPush();
     if(store.get('strm.notifOk',null)===true)await bgFlow(false);
+    await pipFlow();
     if(DL_ON&&!store.get('strm.dlOk',false)&&!store.get('strm.storAsked',false)){
       const ok=await askStorage(0);store.set('strm.storAsked',true);if(ok)store.set('strm.dlOk',true);
     }
@@ -1667,9 +1760,10 @@ function handleBack(){
   if($('.shw.lock'))return true;
   const dg=$('.dlgw');if(dg){if(!dg.classList.contains('first'))dg.remove();return true}
   const sh=$$('.shw');if(sh.length){sh[sh.length-1].remove();return true}
-  const md=$$('.modal');if(md.length){md[md.length-1].remove();return true}
+  const md=$$('.modal:not(.srch):not(.srp)');if(md.length){md[md.length-1].remove();return true}
   const pl=$('#pl');if(pl&&pl.classList.contains('fs')){fsToggle(false);return true}
   if(D){closeDetail();return true}
+  const sm=$$('.modal.srch,.modal.srp');if(sm.length){sm[sm.length-1].remove();return true}
   if(!TOKEN)return'exit';
   if(S.tab!=='home'){go('home');return true}
   if(Date.now()-exitArm<2000)return'exit';
@@ -1760,7 +1854,8 @@ const ACT={
   dstorage:async()=>{try{toast('Checking…');const r=await api('/api/storage');sheet('Server storage',[{t:'Videos stored',s:(r.bytes/1073741824).toFixed(2)+' GB · '+r.files+' files'},{t:'Unfinished uploads',s:r.unfinished+' · '+mb(r.unfinishedBytes||0)+' MB'},{t:'Free limit',s:'10 GB (Backblaze)'}],()=>{})}catch(e){toast((e&&e.error)||'Could not check')}},
   dclean:()=>sheet('Cancel unfinished uploads?',[{t:'Cancel them now',s:'Do not do this while an upload is running',v:1},{t:'Keep',v:0}],async it=>{if(!it.v)return;try{const r=await api('/api/upload/cleanup',{method:'POST'});toast('Cancelled '+r.cancelled+' unfinished upload'+(r.cancelled===1?'':'s'))}catch(e){toast((e&&e.error)||'Failed')}}),
   hist:historyModal,
-  hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>{const i=$('#q');if(i)i.focus()},260)},
+  hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'})},
+  osearch:()=>openSearch(),
   stor:async()=>{if(store.get('strm.dlOk',false)){store.set('strm.dlOk',false);toast('Storage is off. Downloads are paused.')}else{if(await askStorage(0)){store.set('strm.dlOk',true);store.set('strm.storAsked',true)}}drawMe()},
   bg:async()=>{await bgFlow(true);drawMe()},
   notif:async()=>{if(NATIVE){if(store.get('strm.notifOk',null)===true){store.set('strm.notifOk',false);try{await api('/api/push/unregister',{json:{token:store.get('strm.pushTok','')}})}catch(e){}toast('Notifications are off')}else{await enableNotifications()}drawMe();return}if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
