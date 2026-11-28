@@ -382,6 +382,22 @@ img{-webkit-user-drag:none}
 .sdot{width:10px;height:10px;border-radius:50%;background:var(--sc);flex:none;display:inline-block;box-shadow:0 0 0 3px color-mix(in srgb,var(--sc) 26%,transparent)}
 .shw .shi.sc{box-shadow:inset 3px 0 0 var(--sc)}
 .shw .shi.sc.on{background:color-mix(in srgb,var(--sc) 22%,transparent);box-shadow:inset 3px 0 0 var(--sc);color:inherit}
+/* v5.2: banners on the home page */
+.hero{margin:2px 0 10px}
+.htrack{display:flex;gap:10px;overflow-x:auto;padding:0 14px;scroll-snap-type:x mandatory;scroll-padding-left:14px;scrollbar-width:none}
+.htrack::-webkit-scrollbar{display:none}
+.hsl{position:relative;flex:0 0 calc(100% - 28px);aspect-ratio:16/9;border-radius:18px;overflow:hidden;scroll-snap-align:start;background:var(--sf);cursor:pointer}
+.hbn{width:100%;height:100%;object-fit:cover;display:block}
+.hbar{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;background:rgba(18,16,26,.78)}
+.hpo{width:42px;height:58px;border-radius:8px;object-fit:cover;margin-top:-22px;box-shadow:0 4px 14px rgba(0,0,0,.45);flex:none;background:var(--sf)}
+.hin{flex:1;min-width:0}.hin b{display:block;font-size:.95rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hin span{font-size:.8rem;color:rgba(255,255,255,.7)}
+.hpl{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#2dd4bf,#22c55e);display:grid;place-items:center;flex:none;color:#04201c}
+.hdots{display:flex;justify-content:center;gap:6px;margin-top:8px}.hdots i{width:6px;height:6px;border-radius:50%;background:var(--line)}.hdots i.on{width:16px;border-radius:6px;background:var(--acc)}
+.att .arow{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.att .arow img{width:40px;height:54px;border-radius:8px;object-fit:cover;flex:none;background:var(--sf)}
+.att .arow>div{flex:1;min-width:0}.att .arow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.att .arow small{color:var(--tx2)}
+.att .abn{aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:var(--sf);display:grid;place-items:center;color:var(--tx2);margin:14px 0}.att .abn img{width:100%;height:100%;object-fit:cover}
+.upb{flex-wrap:nowrap}.upb button{padding:14px 8px;gap:6px;font-size:.9rem;white-space:nowrap}
 /* v5.1: the small player shows only the episode, the full title only in fullscreen */
 .player:not(.fs) .pnm{display:none}
 /* v5.0: search pages */
@@ -410,6 +426,7 @@ img{-webkit-user-drag:none}
 .cropst img{position:absolute;max-width:none;pointer-events:none;user-select:none}
 .cropm{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.62);border:2px solid rgba(255,255,255,.85);pointer-events:none}
 .cropb input[type=range]{width:min(76vw,320px);margin:16px 0 4px;accent-color:var(--acc)}
+.cropb.wide{width:min(480px,100%)}.cropst.rect{width:min(90vw,440px)}.cropst.rect .cropm{display:none}.cropb.wide input[type=range]{width:min(90vw,440px)}
 .cropbt{display:flex;gap:10px;margin-top:12px}.cropbt button{flex:1}
 /* v5.0: small floating window (picture in picture) */
 #pipup{display:none;position:fixed;inset:0;z-index:99999;background:#0e0a16;color:#fff;align-items:center;justify-content:center;padding:8px}
@@ -518,7 +535,7 @@ function cover(title,h1,h2,seed){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 /* constants + state */
-const APP_VERSION='5.1';
+const APP_VERSION='5.2';
 const SPEEDS=[.5,.75,1,1.25,1.5,2];
 const FEEDS={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
 const FEEDCAT={foryou:'For you',trending:'Trending',ongoing:'Ongoing',movies:'Movies'};
@@ -620,15 +637,20 @@ function kick(why){
 }
 async function syncProfile(){try{if(!S.set.name||S.set.name==='Guest')return;const b={name:S.set.name};if(S.set.photo&&/^data:/.test(S.set.photo))b.avatar=S.set.photo;await api('/api/profile',{json:b})}catch(e){}}
 let catSig='';
+let bnSig='';
+async function loadBanners(){
+  try{const bl=await api('/api/banners');const sg=bl.map(b=>b.sid+':'+b.ts).join(',');if(sg!==bnSig){bnSig=sg;S.banners=bl;store.set('strm.bn',bl);if(S.tab==='home'&&$('#hero'))drawHero()}}catch(e){}
+}
 async function loadCatalog(force){
   if(!TOKEN||!navigator.onLine)return;
+  loadBanners();
   try{
     const l=await api('/api/catalog');const sig=l.map(s=>s.id+':'+s.ts+':'+(s.views||0)).join(',');
     if(!force&&sig===catSig)return;catSig=sig;S.series=l;store.set('strm.cat5',l);pruneDownloads();refreshView();
     if(D&&!ser(D.id)){closeDetail(true);toast('This video was removed')}
   }catch(e){}
 }
-function refreshView(){const t=S.tab;if(t==='home'&&$('#grid')){const lg=$('#langs');if(lg&&S.feed==='foryou')lg.innerHTML=langChips();drawGrid()}else if(t==='playlist')drawPlaylist();else if(t==='upload')drawUpload();else if(t==='downloads')drawDownloads()}
+function refreshView(){const t=S.tab;if(t==='home'&&$('#grid')){const lg=$('#langs');if(lg&&S.feed==='foryou')lg.innerHTML=langChips();drawHero();drawGrid()}else if(t==='playlist')drawPlaylist();else if(t==='upload')drawUpload();else if(t==='downloads')drawDownloads()}
 async function pollMe(){if(!TOKEN||!navigator.onLine)return;try{const nm=DEVNAME;const r=await api('/api/me'+(nm!==dnSent?'?dn='+encodeURIComponent(nm):''));dnSent=nm;if((r.tag||'')!==(S.tag||'')){S.tag=r.tag||'';const u=store.get('strm.unlock',{});u.tag=S.tag;store.set('strm.unlock',u);if(S.tab==='me'&&$('.prof'))drawMe()}}catch(e){}}
 async function pollUnread(){
   if(!TOKEN||!navigator.onLine||S.tab==='chats')return;
@@ -710,21 +732,22 @@ function renderGate(msg){
 }
 const daysLeft=k=>Math.max(0,Math.ceil((store.get(k,0)+7*864e5-Date.now())/864e5));
 /* profile photo editor: the photo is moved and zoomed inside a round frame, then saved as a sharp 512 x 512 picture */
-function cropPhoto(file){
+function cropImage(file,opt){
+  const R=opt.ratio||1,OUTW=opt.outW||512,OUTH=Math.round(OUTW/R),MAX=opt.max||190000;
   return new Promise(res=>{
     const url=URL.createObjectURL(file),img=new Image();
     img.onerror=()=>{URL.revokeObjectURL(url);toast('This photo could not be opened');res(null)};
     img.onload=()=>{
       const iw=img.naturalWidth,ih=img.naturalHeight;
-      const w=el(`<div class="cropw"><div class="cropb"><h3>Adjust your photo</h3><p>Drag to move. Pinch, scroll or use the slider to zoom.</p><div class="cropst" id="cst"><img alt="" draggable="false"><div class="cropm"></div></div><input type="range" id="czm" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><div class="cropbt"><button class="btn2" id="ccx">Cancel</button><button class="cta" id="cok">Done</button></div></div></div>`);
+      const w=el(`<div class="cropw"><div class="cropb ${opt.round?'':'wide'}"><h3>${esc(opt.title||'Adjust your photo')}</h3><p>Drag to move. Pinch, scroll or use the slider to zoom.</p><div class="cropst ${opt.round?'':'rect'}" id="cst" style="aspect-ratio:${R}"><img alt="" draggable="false"><div class="cropm"></div></div><input type="range" id="czm" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><div class="cropbt"><button class="btn2" id="ccx">Cancel</button><button class="cta" id="cok">Done</button></div></div></div>`);
       app.appendChild(w);
       const st=$('#cst',w),im=$('img',st),zm=$('#czm',w);im.src=url;
-      const size=()=>st.clientWidth||300,cover=()=>Math.max(size()/iw,size()/ih);
+      const W=()=>st.clientWidth||300,H=()=>st.clientHeight||300,cover=()=>Math.max(W()/iw,H()/ih);
       let sc=1,ox=0,oy=0;
-      const clamp=()=>{const z=size(),d=cover()*sc;ox=Math.min(0,Math.max(z-iw*d,ox));oy=Math.min(0,Math.max(z-ih*d,oy))};
+      const clamp=()=>{const d=cover()*sc;ox=Math.min(0,Math.max(W()-iw*d,ox));oy=Math.min(0,Math.max(H()-ih*d,oy))};
       const apply=()=>{clamp();const d=cover()*sc;im.style.width=iw*d+'px';im.style.height=ih*d+'px';im.style.left=ox+'px';im.style.top=oy+'px'};
-      const setScale=n=>{const z=size(),c=z/2,o=cover()*sc;n=Math.min(4,Math.max(1,n));const px=(c-ox)/o,py=(c-oy)/o,d=cover()*n;sc=n;ox=c-px*d;oy=c-py*d;zm.value=n;apply()};
-      ox=(size()-iw*cover())/2;oy=(size()-ih*cover())/2;apply();
+      const setScale=n=>{const cx=W()/2,cy=H()/2,o=cover()*sc;n=Math.min(4,Math.max(1,n));const px=(cx-ox)/o,py=(cy-oy)/o,d=cover()*n;sc=n;ox=cx-px*d;oy=cy-py*d;zm.value=n;apply()};
+      ox=(W()-iw*cover())/2;oy=(H()-ih*cover())/2;apply();
       zm.oninput=()=>setScale(+zm.value);
       st.addEventListener('wheel',e=>{e.preventDefault();setScale(sc*Math.exp(-e.deltaY*0.0015))},{passive:false});
       const ptr=new Map();let last=0;
@@ -739,22 +762,24 @@ function cropPhoto(file){
       const close=r=>{URL.revokeObjectURL(url);w.remove();res(r)};
       $('#ccx',w).onclick=()=>close(null);
       $('#cok',w).onclick=()=>{
-        const z=size(),d=cover()*sc,OUT=512,sx=-ox/d,sy=-oy/d,sw=z/d;
-        const q2=c=>{const x=c.getContext('2d');x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';return x};
-        let cur=document.createElement('canvas');
-        if(sw<=OUT){cur.width=cur.height=OUT;const x=q2(cur);x.fillStyle='#fff';x.fillRect(0,0,OUT,OUT);x.drawImage(img,sx,sy,sw,sw,0,0,OUT,OUT)}
+        const d=cover()*sc,sx=-ox/d,sy=-oy/d,sw=W()/d,sh=H()/d;
+        const q2=c=>{const x=c.getContext('2d');x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);return x};
+        const mk=(cw,ch)=>{const c=document.createElement('canvas');c.width=cw;c.height=ch;return c};
+        let cur;
+        if(sw<=OUTW){cur=mk(OUTW,OUTH);q2(cur).drawImage(img,sx,sy,sw,sh,0,0,OUTW,OUTH)}
         else{
-          let n=Math.round(sw);cur.width=cur.height=n;const x=q2(cur);x.fillStyle='#fff';x.fillRect(0,0,n,n);x.drawImage(img,sx,sy,sw,sw,0,0,n,n);
-          while(n/2>=OUT){const h=Math.round(n/2),nc=document.createElement('canvas');nc.width=nc.height=h;q2(nc).drawImage(cur,0,0,n,n,0,0,h,h);cur=nc;n=h}
-          if(n!==OUT){const nc=document.createElement('canvas');nc.width=nc.height=OUT;q2(nc).drawImage(cur,0,0,n,n,0,0,OUT,OUT);cur=nc}
+          let cw=Math.round(sw),ch=Math.round(sh);cur=mk(cw,ch);q2(cur).drawImage(img,sx,sy,sw,sh,0,0,cw,ch);
+          while(cw/2>=OUTW){const nw=Math.round(cw/2),nh=Math.round(ch/2),nc=mk(nw,nh);q2(nc).drawImage(cur,0,0,cw,ch,0,0,nw,nh);cur=nc;cw=nw;ch=nh}
+          if(cw!==OUTW){const nc=mk(OUTW,OUTH);q2(nc).drawImage(cur,0,0,cw,ch,0,0,OUTW,OUTH);cur=nc}
         }
-        let out='';for(let q=.93;q>=.55;q-=.06){out=cur.toDataURL('image/jpeg',q);if(out.length<=190000)break}
+        let out='';for(let q=.93;q>=.5;q-=.06){out=cur.toDataURL('image/jpeg',q);if(out.length<=MAX)break}
         close(out);
       };
     };
     img.src=url;
   });
 }
+const cropPhoto=f=>cropImage(f,{ratio:1,outW:512,round:true,max:190000});
 const EMOJI_RE=/[\p{Extended_Pictographic}\p{Regional_Indicator}\u200d\ufe0f\u20e3]/gu;
 function nameDialog(first){
   $$('.dlgw').forEach(n=>n.remove());
@@ -828,10 +853,25 @@ function feedList(){
   return l;
 }
 function drawGrid(){const l=feedList();$('#grid').innerHTML=l.length?l.map(s=>card(s,newest(s))).join(''):`<div class="empty" style="grid-column:1/-1"><b>${S.series.length?(S.q?'No results':'Nothing here yet'):'No videos yet'}</b>${S.series.length?(S.q?'Try another title or genre.':'Videos added to this section will show up here.'):(S.mode==='dev'?'Open the Upload tab and tap Add New.':'New videos from the developer will show up here.')}</div>`}
+let heroT=0;
+const heroItems=()=>(S.banners||(S.banners=store.get('strm.bn',[]))).map(b=>({b,s:ser(b.sid)})).filter(x=>x.s).slice(0,7);
+function drawHero(){
+  const h=$('#hero');if(!h)return;const l=heroItems();
+  if(!l.length){h.innerHTML='';h.dataset.sig='';clearInterval(heroT);return}
+  const sig=l.map(x=>x.s.id+':'+x.b.ts+':'+x.s.title+':'+(x.s.langs||[]).join()).join('|');
+  if(h.dataset.sig===sig&&h.firstChild)return;h.dataset.sig=sig;
+  h.innerHTML=`<div class="hero"><div class="htrack" id="htrack">${l.map(({b,s})=>`<div class="hsl" data-act="open" data-id="${s.id}"><img class="hbn" src="${b.img}" alt="" decoding="async"><div class="hbar"><img class="hpo" src="${s.cover}" alt=""><div class="hin"><b>${esc(s.title)}</b><span>[${esc((s.langs||[]).join(' / ')||'Hindi')}]</span></div><button class="hpl" data-act="open" data-id="${s.id}" aria-label="Play">${ic('play',20)}</button></div></div>`).join('')}</div><div class="hdots">${l.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div></div>`;
+  const tr=$('#htrack');let idx=0,pause=0;
+  const step=()=>{const f=tr.firstElementChild;return f?f.offsetWidth+10:0};
+  tr.addEventListener('scroll',()=>{const st=step();if(!st)return;const i=Math.round(tr.scrollLeft/st);if(i!==idx){idx=i;$$('.hdots i',h).forEach((d,k)=>d.classList.toggle('on',k===i))}},{passive:true});
+  ['pointerdown','touchstart','wheel'].forEach(ev=>tr.addEventListener(ev,()=>{pause=Date.now()+6000},{passive:true}));
+  clearInterval(heroT);
+  heroT=setInterval(()=>{const t=$('#htrack');if(!t||!document.body.contains(t)){clearInterval(heroT);return}if(document.hidden||Date.now()<pause||l.length<2)return;const st=step();idx=(idx+1)%l.length;$$('.hdots i',h).forEach((d,k)=>d.classList.toggle('on',k===idx));t.scrollTo({left:idx*st,behavior:'smooth'})},4000);
+}
 function drawHome(){
   $('#feedbar').innerHTML=`<div class="sfix"><div class="search"><span class="hlogo">${logo(34)}</span><div class="sbox" data-act="osearch">${ic('search',18)}<input id="q" placeholder="Search videos" readonly inputmode="none" autocomplete="off"></div>${S.mode==='dev'?'<span class="tag">Developer</span>':''}<span class="tag warn" id="offchip" style="display:${navigator.onLine?'none':'block'}">Offline</span></div></div>`;
-  $('#content').innerHTML=`<div style="height:54px"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${S.feed==='foryou'?langChips():''}</div><div class="grid" id="grid"></div>`;
-  drawGrid();
+  $('#content').innerHTML=`<div style="height:54px"></div><div id="hero"></div><div class="feeds">${Object.entries(FEEDS).map(([k,l])=>`<button data-act="feed" data-v="${k}" class="${S.feed===k?'on':''}">${l}</button>`).join('')}</div><div class="langs" id="langs">${S.feed==='foryou'?langChips():''}</div><div class="grid" id="grid"></div>`;
+  drawHero();drawGrid();
 }
 function drawPlaylist(){
   const l=S.playlist.map(ser).filter(Boolean);
@@ -976,7 +1016,7 @@ function drawMe(){
 /* ---------- developer: upload / manage / delete ---------- */
 function drawUpload(){
   const l=[...S.series].sort((a,b)=>b.ts-a.ts);
-  $('#content').innerHTML=`<div class="sticky"><div class="hdr"><div class="brand">${logo(26)}<span>Upload</span></div><div class="chip-s"><span class="tag">Developer</span></div></div><div class="upb"><button data-act="up-new">${ic('plus',20)} Add New</button><button data-act="up-next">${ic('layers',20)} Next Season</button></div></div>${l.length?`<p class="sub" style="padding-top:8px">Tap a cover to add episodes. Hold a cover to delete it.</p><div class="grid">${l.map(s=>card(s,newest(s))).join('')}</div>`:'<div class="empty"><b>No uploads yet</b>Tap Add New to upload your first video.</div>'}`;
+  $('#content').innerHTML=`<div class="sticky"><div class="hdr"><div class="brand">${logo(26)}<span>Upload</span></div><div class="chip-s"><span class="tag">Developer</span></div></div><div class="upb"><button data-act="up-new">${ic('plus',20)} Add New</button><button data-act="up-next">${ic('layers',20)} Next Season</button><button data-act="up-att">${ic('star',20)} Attachment</button></div></div>${l.length?`<p class="sub" style="padding-top:8px">Tap a cover to add episodes. Hold a cover to delete it.</p><div class="grid">${l.map(s=>card(s,newest(s))).join('')}</div>`:'<div class="empty"><b>No uploads yet</b>Tap Add New to upload your first video.</div>'}`;
 }
 function confirmDelete(title,sub,fn){
   sheet(title,[{t:'Delete permanently',s:'Removes it for everyone',v:1},{t:'Cancel',v:0}],async it=>{if(!it.v)return;toast('Deleting…');try{await fn();toast('Deleted for everyone')}catch(e){toast((e&&e.error)||'Delete failed. Check your internet.')}},sub);
@@ -1106,6 +1146,84 @@ function putPart(fileId,n,buf,sha,onP,safe){
   });
 }
 const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+/* ---------- MP4 inspection and fast-start fix (works on a local file or on a remote file read in pieces) ---------- */
+const mp4t4=(u8,o)=>String.fromCharCode(u8[o],u8[o+1],u8[o+2],u8[o+3]);
+async function mp4TopBoxes(rd,size){
+  const out=[];let p=0;
+  while(p+8<=size&&out.length<60){
+    const b=await rd(p,16);if(!b||b.byteLength<8)break;
+    const dv=new DataView(b),u8=new Uint8Array(b);let n=dv.getUint32(0),hs=8;
+    if(n===1&&b.byteLength>=16){n=Number(dv.getBigUint64(8));hs=16}else if(n===0)n=size-p;
+    if(n<hs||p+n>size)break;
+    out.push({t:mp4t4(u8,4),s:p,n,h:hs});p+=n;
+  }
+  return{boxes:out,end:p,frag:out.some(b=>b.t==='moof'),ok:out.length>0&&out.some(b=>b.t==='ftyp'||b.t==='moov'||b.t==='mdat')};
+}
+function mp4Kids(buf,s,e,fn){const dv=new DataView(buf),u8=new Uint8Array(buf);let o=s;while(o+8<=e){let n=dv.getUint32(o),h=8;if(n===1){n=Number(dv.getBigUint64(o+8));h=16}if(n<h||o+n>e)break;fn(mp4t4(u8,o+4),o+h,o+n);o+=n}}
+function mp4Info(buf){
+  const dv=new DataView(buf),u8=new Uint8Array(buf),info={dur:0,v:null,a:null};
+  mp4Kids(buf,8,buf.byteLength,(t,s,e)=>{
+    if(t==='mvhd'){const ver=u8[s];const ts=ver===1?dv.getUint32(s+20):dv.getUint32(s+12);const d=ver===1?Number(dv.getBigUint64(s+24)):dv.getUint32(s+16);info.dur=ts?d/ts:0}
+    if(t!=='trak')return;
+    mp4Kids(buf,s,e,(t2,s2,e2)=>{if(t2!=='mdia')return;let kind='';
+      mp4Kids(buf,s2,e2,(t3,s3,e3)=>{
+        if(t3==='hdlr')kind=mp4t4(u8,s3+8);
+        if(t3!=='minf')return;
+        mp4Kids(buf,s3,e3,(t4,s4,e4)=>{if(t4!=='stbl')return;
+          mp4Kids(buf,s4,e4,(t5,s5,e5)=>{if(t5!=='stsd')return;
+            const es=s5+8,fmt=mp4t4(u8,es+4);
+            if(kind==='vide'){
+              const v={fmt,prof:0};
+              mp4Kids(buf,es+86,Math.min(e5,es+dv.getUint32(es)),(t6,s6)=>{
+                if(t6==='avcC')v.prof=u8[s6+1];
+              });
+              info.v=v;
+            }else if(kind==='soun')info.a={fmt};
+          });
+        });
+      });
+    });
+  });
+  return info;
+}
+/* returns the facts about a video file: {fast,frag,dur,bitrate,v,a} or {ok:false} */
+async function mp4Inspect(rd,size){
+  try{
+    const r=await mp4TopBoxes(rd,size);if(!r.ok)return{ok:false};
+    const mb=r.boxes.find(b=>b.t==='moov'),di=r.boxes.findIndex(b=>b.t==='mdat'),mi=r.boxes.findIndex(b=>b.t==='moov');
+    const out={ok:true,fast:mi>=0&&(di<0||mi<di),frag:r.frag,boxes:r.boxes,v:null,a:null,dur:0,bitrate:0};
+    if(mb&&mb.n<=48*1048576){const info=mp4Info(await rd(mb.s,mb.n));out.v=info.v;out.a=info.a;out.dur=info.dur;out.bitrate=info.dur>0?size*8/info.dur:0}
+    return out;
+  }catch(e){return{ok:false}}
+}
+/* human readable problems of a video file (empty list = fine) */
+function mp4Problems(i,name){
+  const l=[];if(!i||!i.ok)return l;
+  const f=i.v&&i.v.fmt;
+  if(f==='hvc1'||f==='hev1'||f==='dvh1'||f==='dvhe')l.push('H.265 / HEVC video: many phones and browsers cannot play it');
+  else if(f==='av01')l.push('AV1 video: many phones cannot play it');
+  else if(f&&/^avc[13]$/.test(f)&&i.v.prof>=110)l.push('10-bit H.264 video: most phones cannot play it');
+  if(i.a&&/^(ac-3|ec-3|dtsc|dtsh|dtsl|mlpa)$/.test(i.a.fmt))l.push('Audio format '+i.a.fmt.toUpperCase()+': there may be no sound on phones');
+  if(i.bitrate>8e6)l.push('Very high bitrate ('+(i.bitrate/1e6).toFixed(1)+' Mbps): it will keep buffering on normal internet');
+  return l;
+}
+/* moves the "moov" box in front of the video data, so playing starts at once. Returns a new File (lazy, no big copy) or null */
+async function mp4FastStart(file,info){
+  const bx=info.boxes,mi=bx.findIndex(b=>b.t==='moov'),di=bx.findIndex(b=>b.t==='mdat');
+  if(mi<0||di<0||mi<di||info.frag)return null;
+  const mb=bx[mi];if(mb.n>64*1048576)return null;
+  const moov=await file.slice(mb.s,mb.s+mb.n).arrayBuffer(),dv=new DataView(moov),shift=mb.n;let bad=false;
+  const walk=(s,e,depth)=>mp4Kids(moov,s,e,(t,s2,e2)=>{
+    if(t==='cmov')bad=true;
+    if(t==='stco'){const c=dv.getUint32(s2+4);for(let k=0;k<c;k++){const o=s2+8+k*4,v=dv.getUint32(o)+shift;if(v>0xFFFFFFFF){bad=true;return}dv.setUint32(o,v)}}
+    else if(t==='co64'){const c=dv.getUint32(s2+4);for(let k=0;k<c;k++){const o=s2+8+k*8;dv.setBigUint64(o,dv.getBigUint64(o)+BigInt(shift))}}
+    else if(depth<6&&(t==='moov'||t==='trak'||t==='mdia'||t==='minf'||t==='stbl'||t==='edts'))walk(s2,e2,depth+1);
+  });
+  walk(8,moov.byteLength,0);
+  if(bad)return null;
+  const parts=[file.slice(0,bx[di].s),moov,file.slice(bx[di].s,mb.s),file.slice(mb.s+mb.n)];
+  return new File(parts,file.name,{type:file.type||'video/mp4'});
+}
 async function uploadFile(file,onProgress){
   const rk='strm.up.'+file.name+'.'+file.size;let st=store.get(rk,null),have=[];
   if(st){try{have=await api('/api/upload/parts?fileId='+encodeURIComponent(st.fileId))}catch(e){if(e&&e.offline)throw e;st=null;have=[]}}
@@ -1266,7 +1384,21 @@ function uploadForm(mode,sr,ctx){
     try{
       const groups=[],byFile=new Map();
       U.langs.forEach(l=>{const f=U.fm[l];let g=byFile.get(f.file);if(!g){g={file:f.file,fq:f.fq,tracks:[]};byFile.set(f.file,g);groups.push(g)}g.tracks.push({lang:l,idx:f.track||0})});
-      const all=total();let done=0;const t0=Date.now();
+      // look inside every video first: move the info block to the front (so playing starts at once) and warn about formats phones cannot play
+      const warns=[];
+      for(const g of groups){
+        if(/\.mkv$/i.test(g.file.name)){warns.push(g.file.name+': MKV is not a format phones play directly');continue}
+        if(!/\.(mp4|m4v|mov)$/i.test(g.file.name))continue;
+        prog(0,'Checking '+g.file.name+'…');
+        const rd=(a,l)=>g.file.slice(a,a+l).arrayBuffer(),info=await mp4Inspect(rd,g.file.size);
+        if(info.ok&&!info.fast&&!info.frag){const fx=await mp4FastStart(g.file,info);if(fx){g.file=fx;toast('Optimised for fast start')}else warns.push(g.file.name+': the video info is at the end of the file and could not be moved')}
+        mp4Problems(info).forEach(x=>warns.push(g.file.name+': '+x));
+      }
+      if(warns.length){
+        const v=await ctrDialog({title:'This video may not play well',text:warns.slice(0,4).map(esc).join('<br><br>')+'<br><br>For the best result convert it to MP4 (H.264 video + AAC audio) before uploading.',buttons:[{t:'Upload anyway',primary:true},{t:'Cancel'}]});
+        if(v!==0){U.busy=false,UPSTATE.on=false;draw();return}
+      }
+      const all=groups.reduce((a,g)=>a+g.file.size,0);let done=0;const t0=Date.now();
       for(const g of groups){
         const r=await uploadFile(g.file,loaded=>{const x=done+loaded,sp=x/Math.max(1,(Date.now()-t0)/1000);prog(Math.min(99,x/all*100),`Uploading ${g.tracks.map(t=>t.lang).join(' + ')} ${g.fq}p · ${mb(x)} / ${mb(all)} MB · ${(sp/1048576*8).toFixed(1)} Mbps`)});
         g.name=r.name;done+=g.file.size;
@@ -1350,6 +1482,41 @@ function devicesModal(){
       if(!on){try{await api('/api/keys/'+h,{json:{active:1}});toast('Unblocked');draw()}catch(er){toast((er&&er.error)||'Failed')}return}
       sheet('Block '+nm+'?',[{t:'Block and log out',s:'They cannot use the app until you unblock',v:'b'}],async()=>{try{await api('/api/keys/'+h,{json:{active:0}});toast('Blocked. That person is signed out.');draw()}catch(er){toast((er&&er.error)||'Failed')}})}});
 }
+/* ---------- attachment (banners on the home page, developer) ---------- */
+function openAttach(){
+  if($('.modal.att'))return;
+  const m=el(`<div class="modal att"><div class="mh"><button class="ib" data-a="back" aria-label="Back">${ic('back',22)}</button><b>Attachment</b></div><div class="mbody" id="abody"></div><input type="file" id="bnf" accept="image/*" hidden></div>`);
+  app.appendChild(m);
+  const body=$('#abody',m);let cur=0;
+  const row=(s,extra)=>`<div class="arow" data-a="pick" data-id="${s.id}"><img src="${s.cover}" alt=""><div><b>${esc(s.title)}</b><small>[${esc((s.langs||[]).join(' / ')||'Hindi')}]</small></div>${extra||''}</div>`;
+  const home=()=>{
+    cur=0;const att=heroItems();
+    body.innerHTML=`<p class="sub" style="padding:0 0 12px">Search a video, then add its banner. The home page shows up to 7 banners and slides to the next one every 4 seconds.</p><div class="sbox" style="margin-bottom:6px">${ic('search',18)}<input id="asq" placeholder="Search the video name" autocomplete="off"></div><div id="ares"></div><h4 class="sech">Attached (${att.length}/7)</h4>${att.length?att.map(({b,s})=>row(s,`<button class="tag warn" data-a="rm" data-id="${s.id}">Remove</button>`)).join(''):'<p class="sub">Nothing is attached yet.</p>'}`;
+  };
+  const settings=id=>{
+    const s=ser(id);if(!s)return home();cur=id;const b=(S.banners||[]).find(x=>x.sid===id);
+    body.innerHTML=`<div class="arow" style="cursor:default">${`<img src="${s.cover}" alt=""><div><b>${esc(s.title)}</b><small>[${esc((s.langs||[]).join(' / ')||'Hindi')}]</small></div>`}</div><div class="abn">${b?`<img src="${b.img}" alt="">`:'<span>No banner yet</span>'}</div><button class="cta" style="width:100%" data-a="up">${b?'Change banner':'Upload banner'}</button>${b?`<button class="btn2" style="width:100%;margin-top:10px" data-a="rm" data-id="${id}">Remove banner</button>`:''}`;
+  };
+  home();
+  m.addEventListener('input',e=>{
+    if(e.target.id!=='asq')return;const q=e.target.value.trim(),r=$('#ares',m);
+    const l=q?S.series.filter(s=>normT(s.title).includes(normT(q))||simScore(s.title,q)>=50).slice(0,8):[];
+    r.innerHTML=q?(l.length?l.map(s=>row(s)).join(''):'<p class="sub" style="padding:10px 4px">No video with this name</p>'):'';
+  });
+  $('#bnf',m).addEventListener('change',async e=>{
+    const f=e.target.files[0];e.target.value='';if(!f||!cur)return;const id=cur;
+    const img=await cropImage(f,{ratio:16/9,outW:1280,round:false,max:650000,title:'Adjust the banner'});if(!img)return;
+    toast('Saving banner…');
+    try{await api('/api/banners',{json:{sid:id,img}});bnSig='';await loadBanners();toast('Banner saved');home()}catch(er){toast((er&&er.error)||'Could not save the banner')}
+  });
+  m.addEventListener('click',async e=>{
+    const t=e.target.closest('[data-a]');if(!t)return;const a=t.dataset.a;
+    if(a==='back'){if(cur)home();else m.remove()}
+    else if(a==='pick')settings(+t.dataset.id);
+    else if(a==='up')$('#bnf',m).click();
+    else if(a==='rm'){e.stopPropagation();const id=+t.dataset.id;try{await api('/api/banners/'+id+'/delete',{method:'POST'});bnSig='';await loadBanners();toast('Banner removed');home()}catch(er){toast((er&&er.error)||'Could not remove it')}}
+  });
+}
 /* ---------- search ---------- */
 const normT=s=>String(s||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
 const trigrams=s=>{const t=new Set(),x='  '+s+'  ';for(let i=0;i<x.length-2;i++)t.add(x.slice(i,i+3));return t};
@@ -1423,9 +1590,39 @@ async function resolveSrc(){
   const f=epObj(cur(),D.s,D.n).files[D.lang][PL.q];if(!f)return'';
   return API+'/api/video?f='+encodeURIComponent(f.name)+'&t='+encodeURIComponent(TOKEN);
 }
-async function setSrc(resumeAt,play,msg){
+async function remoteMp4(name){
+  const base=API+'/api/video?f='+encodeURIComponent(name)+'&t='+encodeURIComponent(TOKEN);let n=0;
+  const get=(a,l)=>fetch(base+'&x='+(++n)+Date.now(),{cache:'no-store',headers:{Range:'bytes='+a+'-'+(a+l-1)}});
+  const r0=await get(0,16),m=/\/(\d+)$/.exec(r0.headers.get('Content-Range')||'');await r0.arrayBuffer();if(!m)return null;
+  const size=+m[1],rd=async(a,l)=>(await get(a,l)).arrayBuffer();
+  return mp4Inspect(rd,size);
+}
+async function diagStuck(){
+  let text='This episode is not loading. Please check your internet connection and try again in a moment.';
+  try{
+    const ep=epObj(cur(),D.s,D.n),f=((ep&&ep.files||{})[D.lang]||{})[PL.q];
+    if(f&&f.name&&S.mode==='dev'){
+      const i=await remoteMp4(f.name),pr=mp4Problems(i);
+      if(i&&i.ok&&!i.fast&&!i.frag)pr.unshift('The video info is at the end of the file, so the video cannot start quickly');
+      if(i&&!i.ok)pr.push('The file is not a normal MP4 video');
+      if(pr.length)text='Only you can see this:<br><br>'+pr.map(esc).join('<br><br>')+'<br><br>Convert it to MP4 (H.264 + AAC) and upload the episode again.';
+    }
+  }catch(e){}
+  await ctrDialog({title:'This episode cannot start',text,buttons:[{t:'OK',primary:true}]});
+}
+function armWatch(resumeAt,play,attempt){
+  clearTimeout(PL.wd);
+  PL.wd=setTimeout(async()=>{
+    const v=V();if(!v||!D||v.readyState>=2||v.error)return;
+    if(attempt<1){toast('Still loading. Trying again…');await setSrc(v.currentTime||resumeAt||0,play,'Trying again…',attempt+1);return}
+    hideBuf();diagStuck();
+  },attempt<1?14000:18000);
+}
+async function setSrc(resumeAt,play,msg,attempt=0){
   const v=V();if(!v)return;const st0=$('#stage');st0&&st0.classList.remove('vready');showBuf(msg||'Loading…');
-  const url=await resolveSrc();if(!V()||!url){hideBuf();return}
+  let url=await resolveSrc();if(!V()||!url){hideBuf();return}
+  if(attempt>0&&/^https?:/.test(url))url+=(url.includes('?')?'&':'?')+'r='+attempt+Date.now();
+  armWatch(resumeAt,play,attempt);
   v.src=url;v.volume=S.set.volume;v.muted=false;v.defaultPlaybackRate=PL.base;v.playbackRate=PL.base;
   v.addEventListener('loadedmetadata',()=>{if(resumeAt)try{v.currentTime=resumeAt}catch(e){}v.playbackRate=PL.base;if(play)v.play().catch(()=>{})},{once:true});
 }
@@ -1916,6 +2113,7 @@ const ACT={
   hist:historyModal,
   hsearch:()=>{const c=$('#content');if(c)c.scrollTo({top:0,behavior:'smooth'})},
   osearch:()=>openSearch(),
+  'up-att':()=>openAttach(),
   stor:async()=>{if(store.get('strm.dlOk',false)){store.set('strm.dlOk',false);toast('Storage is off. Downloads are paused.')}else{if(await askStorage(0)){store.set('strm.dlOk',true);store.set('strm.storAsked',true)}}drawMe()},
   bg:async()=>{await bgFlow(true);drawMe()},
   notif:async()=>{if(NATIVE){if(store.get('strm.notifOk',null)===true){store.set('strm.notifOk',false);try{await api('/api/push/unregister',{json:{token:store.get('strm.pushTok','')}})}catch(e){}toast('Notifications are off')}else{await enableNotifications()}drawMe();return}if(typeof Notification==='undefined'){toast('Notifications are not supported here');return}if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them in the browser settings.');return}try{await Notification.requestPermission()}catch(e){}drawMe()},
